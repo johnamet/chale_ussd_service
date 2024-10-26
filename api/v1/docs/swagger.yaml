@@ -1,0 +1,181 @@
+openapi: 3.0.0
+info:
+  title: Service API
+  version: 1.0.0
+  description: API for managing orders, including creating new orders and retrieving existing ones.
+servers:
+  - url: http://localhost:7000/api/v1/chale/services  # Change this to your server URL
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY  # Name of the header that will hold the API key
+
+security:
+  - ApiKeyAuth: [ ]  # Apply the API key security globally to all endpoints
+
+paths:
+  /orders:
+    get:
+      summary: Retrieve all orders
+      description: This endpoint retrieves a paginated list of all orders from the database.
+      parameters:
+        - name: page
+          in: query
+          description: The page number to retrieve (default is 1).
+          required: false
+          schema:
+            type: integer
+            example: 1
+        - name: page_size
+          in: query
+          description: The number of orders to return per page (default is 10).
+          required: false
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: A list of orders was retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "order_123"
+                        user_id:
+                          type: string
+                          example: "user_456"
+                        ticket_id:
+                          type: string
+                          example: "ticket_789"
+                        price:
+                          type: number
+                          format: float
+                          example: 150.00
+                        qr_code:
+                          type: string
+                          example: "http://example.com/qr/qr_code_name"
+                  message:
+                    type: string
+                    example: "Orders retrieved successfully"
+                  page:
+                    type: int
+                    example: 1
+                  page_size:
+                    type: int
+                    example: 10
+                  total_orders:
+                    type: int
+                    example: 40
+                  total_pages:
+                    type: int
+                    example: 4
+
+        '500':
+          description: An error occurred while retrieving orders.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Failed to retrieve orders"
+                  error:
+                    type: string
+                    example: "Database connection error"
+
+  /order:
+    post:
+      summary: Create a new order
+      description: This endpoint allows users to create a new order, generate a QR code, and associate a ticket with the order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_name:
+                  type: string
+                  example: "Concert"
+                user_name:
+                  type: string
+                  example: "John Doe"
+                price:
+                  type: number
+                  format: float
+                  example: 150.00
+                phone:
+                  type: string
+                  example: "+1234567890"
+                ticket_type:
+                  type: string
+                  example: "VIP"
+                reference:
+                  type: string
+                  example: "REF123456"
+              required:
+                - event_name
+                - user_name
+                - price
+                - phone
+                - ticket_type
+      responses:
+        '201':
+          description: Order created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  qr_code_url:
+                    type: string
+                    example: "http://example.com/qr/qr_code_name"
+                  message:
+                    type: string
+                    example: "Order created successfully"
+        '400':
+          description: Missing required fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Missing required fields."
+        '500':
+          description: An error occurred while creating the order.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Error creating an order: <error_details>"
