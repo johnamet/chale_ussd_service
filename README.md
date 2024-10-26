@@ -1,6 +1,3 @@
-Here's a structured README template for your project that you can customize as needed:
-
-```markdown
 # E-Commerce Order Management API
 
 ## Overview
@@ -126,12 +123,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 For any inquiries or support, please reach out to:
 
-- **Your Name**: [your.email@example.com](mailto:your.email@example.com)
-- **GitHub**: [yourusername](https://github.com/yourusername)
+- **Your Name**: [johnametepeagboku@live.com](mailto:johnametepeagboku@live.com)
+- **GitHub**: [johnamet](https://github.com/johnamet)
 
 ---
-
-Thank you for using the E-Commerce Order Management API! We hope it helps streamline your order processing needs.
-```
-
-Feel free to modify or expand any sections to suit your project's specific needs!
