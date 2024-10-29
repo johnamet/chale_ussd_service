@@ -150,10 +150,12 @@ paths:
                   qr_code_url:
                     type: string
                     example: "http://example.com/qr/qr_code_name"
+                  pdf_unlock_code:
+                    type: string
+                    example: true
                   message:
                     type: string
                     example: "Order created successfully"
-        '200':
           description: Missing required fields.
           content:
             application/json:
@@ -166,7 +168,6 @@ paths:
                   message:
                     type: string
                     example: "Missing required fields."
-        '200':
           description: An error occurred while creating the order.
           content:
             application/json:
