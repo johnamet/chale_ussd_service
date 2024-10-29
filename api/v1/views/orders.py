@@ -10,6 +10,7 @@ from models.tickets import Ticket
 from models.tour import Tour
 from models.user import User
 from models.event import Event
+from models.tour import Tour
 from utils.util import protected
 
 # Set up a logger for this module
@@ -158,6 +159,14 @@ def create_order():
         # Parse JSON payload from the request
         data = request.get_json()
 
+
+        # Check if all required fields are provided
+        required_fields = ['event_name', 'user_name', 'price', 'ticket_type']
+
+        for field in required_fields:
+            if field not in data:
+                abort(400, description="Missing required fields in the request. Field '{field}' is required")
+
         # Extract and validate required fields
         event_name = data.get('event_name')
         user_name = data.get('user_name')
@@ -165,10 +174,6 @@ def create_order():
         phone = data.get('phone')
         ticket_type = data.get('ticket_type')
         reference = data.get('reference')
-
-        # Check if all required fields are provided
-        if not all([event_name, user_name, price, phone, ticket_type]):
-            abort(400, description="Missing required fields in the request.")
 
         # Check if the user exists; if not, create a new user
         user = User.get(phone)
@@ -180,7 +185,6 @@ def create_order():
         if event:
             event_id = event.id
              # Create and save a ticket associated with the order
-            print('Found')
             ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, event_id=event_id)
         else:
             tour = Tour.get_by_name(event_name)

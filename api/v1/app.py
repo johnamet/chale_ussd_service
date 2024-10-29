@@ -31,8 +31,8 @@ app.config['QR_CODE_DIR'] = os.getenv('QR_CODE_DIR', './qrcodes')
 
 # Enable Cross-Origin Resource Sharing (CORS) for all routes
 CORS(app, resources={r"/*": {"origins": "*"}})
-SWAGGER_URL = '/api/v1/docs'
-API_URL = "http://127.0.0.1:7000/api/v1/chale/services/docs"
+SWAGGER_URL = '/v1/docs'
+API_URL = "http://139.59.185.147:7000/api-services/docs"
 
 swaggerui_blueprint = get_swaggerui_blueprint(
     SWAGGER_URL,
@@ -49,20 +49,6 @@ app.register_blueprint(swaggerui_blueprint)
 app.register_blueprint(app_views)
 
 
-@app.before_request
-def log_request_info():
-    """
-    Logs the incoming request URL and method before processing the request.
-    Also prints all available routes in the application.
-    """
-    # Log the incoming request URL and method
-    logger.info(f"Request URL: {request.url} | Method: {request.method}")
-
-    # Print all available routes
-    available_routes = [f"{rule.endpoint}: {rule.rule}" for rule in app.url_map.iter_rules()]
-    logger.info("Available routes:")
-    for route in available_routes:
-        logger.info(route)
 
 # Error Handlers for the Flask Application
 @app.errorhandler(400)
