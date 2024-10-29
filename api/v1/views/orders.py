@@ -11,7 +11,7 @@ from models.tour import Tour
 from models.user import User
 from models.event import Event
 from models.tour import Tour
-from utils.util import protected
+from utils.util import generate_token, protected
 
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
@@ -219,10 +219,12 @@ def create_order():
         )
         order.save()
 
+
         # Return success response with QR code URL
         return jsonify({
             'success': True,
             'qr_code_url': qr_code_url,
+            'pdf_unlock_token': generate_token,
             'message': 'Order created successfully'
         }), 200
 

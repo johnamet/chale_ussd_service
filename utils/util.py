@@ -64,6 +64,11 @@ def generate_api_key(length=32):
     return api_key
 
 
+def generate_token(length=6):
+    characters = string.ascii_letters + string.digits
+    token = ''.join(secrets.choice(characters) for _ in range(length))
+    return token
+
 # Example usage
 api_key = generate_api_key()
 print(f"Generated API Key: {api_key}")

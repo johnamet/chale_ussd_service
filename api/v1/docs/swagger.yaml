@@ -150,7 +150,7 @@ paths:
                   qr_code_url:
                     type: string
                     example: "http://example.com/qr/qr_code_name"
-                  pdf_unlock_code:
+                  pdf_unlock_token:
                     type: string
                     example: true
                   message:
