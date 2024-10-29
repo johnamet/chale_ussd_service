@@ -8,7 +8,7 @@ with integrated Swagger documentation using Flasgger.
 
 import logging
 import os
-from flask import Flask, jsonify, make_response
+from flask import Flask, jsonify, make_response, request
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from typing import Any
@@ -48,6 +48,21 @@ app.register_blueprint(swaggerui_blueprint)
 # Register the blueprint for API routes
 app.register_blueprint(app_views)
 
+
+@app.before_request
+def log_request_info():
+    """
+    Logs the incoming request URL and method before processing the request.
+    Also prints all available routes in the application.
+    """
+    # Log the incoming request URL and method
+    logger.info(f"Request URL: {request.url} | Method: {request.method}")
+
+    # Print all available routes
+    available_routes = [f"{rule.endpoint}: {rule.rule}" for rule in app.url_map.iter_rules()]
+    logger.info("Available routes:")
+    for route in available_routes:
+        logger.info(route)
 
 # Error Handlers for the Flask Application
 @app.errorhandler(400)

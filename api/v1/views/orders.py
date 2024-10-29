@@ -7,7 +7,9 @@ from api.v1.views import app_views
 from models.engine.qr_code_engine import QrCodeEngine
 from models.order import Order
 from models.tickets import Ticket
+from models.tour import Tour
 from models.user import User
+from models.event import Event
 from utils.util import protected
 
 # Set up a logger for this module
@@ -174,8 +176,21 @@ def create_order():
             user = User(id=phone, phone=phone, password=phone, country_id=1, name=user_name, email=str(phone))
             user.save()
 
-        # Create and save a ticket associated with the order
-        ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1)
+        event = Event.get_by_name(event_name)
+        if event:
+            event_id = event.id
+             # Create and save a ticket associated with the order
+            print('Found')
+            ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, event_id=event_id)
+        else:
+            tour = Tour.get_by_name(event_name)
+            if tour:
+                 # Create and save a ticket associated with the order
+                ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, tour_id=tour.id)
+            else:
+                # Create and save a ticket associated with the order
+                ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1)
+        
         ticket.save()  # Save ticket to generate ticket.id
 
         # Generate the QR code for the order
