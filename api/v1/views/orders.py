@@ -165,7 +165,11 @@ def create_order():
 
         for field in required_fields:
             if field not in data:
-                abort(400, description="Missing required fields in the request. Field '{field}' is required")
+                return jsonify({
+                    "success": False,
+                    "message": "Missing required fields in the request. Field '{field}' is required",
+                    "error": "Database connection error"
+                    }), 200
 
         # Extract and validate required fields
         event_name = data.get('event_name')
@@ -220,9 +224,13 @@ def create_order():
             'success': True,
             'qr_code_url': qr_code_url,
             'message': 'Order created successfully'
-        }), 201
+        }), 200
 
     except Exception as e:
         # Log the exception and return error response
         logger.error(f"Error creating order: {e}")
-        abort(500, description="Error creating an order.")
+        return jsonify({
+                    "success": False,
+                    "message": "Error creating an order",
+                    "error": "Database connection error"
+                    }), 200

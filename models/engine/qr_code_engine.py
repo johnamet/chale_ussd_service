@@ -3,10 +3,12 @@
 """
 
 import os
+from dotenv import load_dotenv
 import qrcode
 from PIL import Image
 from datetime import datetime
 
+load_dotenv()
 
 class QrCodeEngine:
 
