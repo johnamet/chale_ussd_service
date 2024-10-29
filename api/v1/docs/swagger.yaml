@@ -156,27 +156,4 @@ paths:
                   message:
                     type: string
                     example: "Order created successfully"
-          description: Missing required fields.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: false
-                  message:
-                    type: string
-                    example: "Missing required fields."
-          description: An error occurred while creating the order.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: false
-                  message:
-                    type: string
-                    example: "Error creating an order: <error_details>"
+          
