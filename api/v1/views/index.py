@@ -8,7 +8,7 @@ from api.v1.views import app_views
 logger = logging.getLogger(__name__)
 
 
-@app_views.route('/status', methods=['GET'], strict_slashes=False)
+@app_views.route('/', methods=['GET'], strict_slashes=False)
 def get_status():
     """
     Check the status of the Flask server.

@@ -8,7 +8,7 @@ with integrated Swagger documentation using Flasgger.
 
 import logging
 import os
-from flask import Flask, jsonify, make_response
+from flask import Flask, jsonify, make_response, request
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from typing import Any
@@ -31,8 +31,8 @@ app.config['QR_CODE_DIR'] = os.getenv('QR_CODE_DIR', './qrcodes')
 
 # Enable Cross-Origin Resource Sharing (CORS) for all routes
 CORS(app, resources={r"/*": {"origins": "*"}})
-SWAGGER_URL = '/api/v1/docs'
-API_URL = "http://127.0.0.1:7000/api/v1/chale/services/docs"
+SWAGGER_URL = '/v1/docs'
+API_URL = "http://139.59.185.147:7000/api-services/docs"
 
 swaggerui_blueprint = get_swaggerui_blueprint(
     SWAGGER_URL,
@@ -47,6 +47,7 @@ app.register_blueprint(swaggerui_blueprint)
 
 # Register the blueprint for API routes
 app.register_blueprint(app_views)
+
 
 
 # Error Handlers for the Flask Application
