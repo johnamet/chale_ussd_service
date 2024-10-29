@@ -224,7 +224,7 @@ def create_order():
         return jsonify({
             'success': True,
             'qr_code_url': qr_code_url,
-            'pdf_unlock_token': generate_token,
+            'pdf_unlock_token': generate_token(),
             'message': 'Order created successfully'
         }), 200
 
