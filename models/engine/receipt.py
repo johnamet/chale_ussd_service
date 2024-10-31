@@ -100,7 +100,8 @@ class Receipt(FPDF, HTMLMixin):
         # Add a clickable phone number
         phone_link = f"tel:{os.getenv('CUSTOMER_SERVICE_PHONE')}"  # Format phone number for dialing
         self.set_xy(10, 255)  # Position below the map link
-        self.cell(0, 10, f"Call: {self.data['phone']}", align="C", link=phone_link)
+        self.set_text_color(0, 0, 255)
+        self.cell(0, 10, f"{self.data['phone']}", align="C", link=phone_link)
 
     async def generate_receipt(self):
         """Generates the receipt PDF content asynchronously."""
