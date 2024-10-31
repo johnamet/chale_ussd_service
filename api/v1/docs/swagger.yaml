@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API for managing orders, including creating new orders and retrieving existing ones.
 servers:
-  - url: https://app.chaleapp.org/api-service/ # Change this to your server URL
+  - url: http://localhost:7000/api-services/ # Change this to your server URL
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -113,7 +113,7 @@ paths:
               properties:
                 event_name:
                   type: string
-                  example: "Concert"
+                  example: "Kenkey Party"
                 user_name:
                   type: string
                   example: "John Doe"
@@ -149,7 +149,7 @@ paths:
                     example: true
                   qr_code_url:
                     type: string
-                    example: "http://example.com/qr/qr_code_name"
+                    example: "http://example.com/qr_code/qr_code_name"
                   pdf_unlock_token:
                     type: string
                     example: true

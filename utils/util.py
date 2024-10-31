@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Load the API key from the environment
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 from flask import abort, request
@@ -69,6 +70,13 @@ def generate_token(length=6):
     token = ''.join(secrets.choice(characters) for _ in range(length))
     return token
 
-# Example usage
-api_key = generate_api_key()
-print(f"Generated API Key: {api_key}")
+def format_date_time(date_str, time_str):
+    # Combine date and time into a single string
+    combined_str = f"{date_str} {time_str}"
+    
+    # Parse the combined string to a datetime object
+    dt = datetime.strptime(combined_str, "%Y-%m-%d %H:%M:%S")
+    
+    # Format to the desired output
+    formatted_date_time = dt.strftime("%B %d, %Y %I:%M%p GMT")
+    return formatted_date_time

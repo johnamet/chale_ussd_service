@@ -1,8 +1,10 @@
 import logging
 import os
-from flask import jsonify, make_response, send_from_directory
+from flask import abort, jsonify, make_response, send_file, send_from_directory
 
 from api.v1.views import app_views
+from models import cache
+from models.engine.receipt import Receipt
 
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
@@ -68,33 +70,50 @@ def get_health():
 
     return jsonify({
         'success': True,
-        'is_live': storage.is_live()
+        'redis': cache.ping()
     }), 200
 
 
 @app_views.route('/qr_code/<filename>')
-def get_qr_code(filename):
+async def get_qr_code(filename):
     """
-    Retrieve a QR code file.
+    Retrieve and serve a QR code receipt PDF asynchronously.
 
-    This endpoint serves a QR code file from the specified directory. It returns the
-    file with the provided filename, allowing clients to download or display the QR code.
+    This endpoint generates and serves a QR code receipt PDF file directly from memory.
+    If the filename corresponds to a valid ticket in the cache, it will generate a PDF
+    receipt for download or display. 
 
     Parameters:
-        filename (str): The name of the QR code file to retrieve.
+        filename (str): Unique identifier for the ticket data, used to generate the receipt.
 
-    Responses:
-        200 OK:
-            Successfully retrieved the QR code file.
-        404 Not Found:
-            The requested QR code file does not exist.
+    Returns:
+        200 OK: Returns the QR code receipt as a downloadable PDF file.
+        404 Not Found: The requested ticket data does not exist.
 
     Example Usage:
-        GET /qr_code/sample_qr_code.png
+        GET /qr_code/sample_qr_code.pdf
     """
-    return send_from_directory(os.getenv('QR_CODE_DIR'), filename)
+    try:
+        # Generate the receipt using the Receipt class
+        print(filename)
+        receipt = Receipt(cache.hget_all(filename))
+        receipt_stream = await receipt.create_receipt()
 
+        # Return the PDF as a downloadable file
+        return send_file(
+            receipt_stream,
+            download_name=f"{filename}_receipt.pdf",
+            mimetype='application/pdf'
+        )
 
+        # return jsonify(f"Hello World, {filename}"), 200
+
+    except KeyError as e:
+        # Handle case where ticket data doesn't exist in the cache
+        abort(404, description=f"The requested ticket data was not found. {e}")
+    except Exception as e:
+        # General exception handling
+        abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
 @app_views.route('/docs/', methods=['GET'], strict_slashes=False)
 def swagger_yaml():
     """

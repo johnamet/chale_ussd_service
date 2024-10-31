@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 
+from datetime import datetime
 import logging
 from flask import abort, jsonify, request
+import os
+
 
 from api.v1.views import app_views
-from models.engine.qr_code_engine import QrCodeEngine
 from models.order import Order
 from models.tickets import Ticket
 from models.tour import Tour
 from models.user import User
 from models.event import Event
 from models.tour import Tour
+from utils import util
 from utils.util import generate_token, protected
-
+from models import cache
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
 
@@ -177,7 +180,7 @@ def create_order():
         price = data.get('price')
         phone = data.get('phone')
         ticket_type = data.get('ticket_type')
-        reference = data.get('reference')
+        reference = data.get('reference', f'ref-{generate_token()}')
 
         # Check if the user exists; if not, create a new user
         user = User.get(phone)
@@ -191,19 +194,18 @@ def create_order():
              # Create and save a ticket associated with the order
             ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, event_id=event_id)
         else:
-            tour = Tour.get_by_name(event_name)
-            if tour:
+            event = Tour.get_by_name(event_name)
+            if event:
                  # Create and save a ticket associated with the order
-                ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, tour_id=tour.id)
+                ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, tour_id=event.id)
             else:
                 # Create and save a ticket associated with the order
                 ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1)
         
         ticket.save()  # Save ticket to generate ticket.id
 
-        # Generate the QR code for the order
-        qr_code_engine = QrCodeEngine(phone)
-        qr_code_url, qr_code_name = qr_code_engine.generate_code()
+        file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
+
 
         # Create and save the order with the generated ticket_id and QR code
         order = Order(
@@ -212,19 +214,41 @@ def create_order():
             quantity=1,
             ticket_type=ticket_type,
             price=price,
-            qr_code=qr_code_name,
+            qr_code=file_name,
             currency='GHS',
             payment_status='COMPLETED',
             reference=reference
         )
         order.save()
 
+        password = generate_token()
+
+        data = {
+            'phone': phone,
+            'name': user_name,
+            'event_coordinates': event.coordinates if event  else 'www.chaleapp.org',
+            'event_name': event_name,
+            'start_date': util.format_date_time(event.start_date, event.start_time),
+            'end_date': util.format_date_time(event.end_date, event.end_time),
+            'description': event.description if event else 'Please contact our customer service for details. Thank you.',
+            'reference': reference,
+            'password': password,
+            'ticket_id': ticket.id,
+            'ticket_type': ticket_type
+        }
+
+
+        cache_result = cache.hset(key=file_name, data=data)
+        if not cache_result:
+            abort(500, 'Error writing to redis')
+
+        code_url = f'{os.getenv("SERVER_ADDRESS")}qr_code/{file_name}'
 
         # Return success response with QR code URL
         return jsonify({
             'success': True,
-            'qr_code_url': qr_code_url,
-            'pdf_unlock_token': generate_token(),
+            'qr_code_url':code_url,
+            'pdf_unlock_token': password,
             'message': 'Order created successfully'
         }), 200
 
