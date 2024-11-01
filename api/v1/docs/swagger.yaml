@@ -4,6 +4,7 @@ info:
   version: 1.0.0
   description: API for managing orders, including creating new orders and retrieving existing ones.
 servers:
+  - url: http://app.chaleapp.org/api-service/
   - url: http://localhost:7000/api-services/ # Change this to your server URL
 components:
   securitySchemes:
@@ -127,6 +128,65 @@ paths:
                 ticket_type:
                   type: string
                   example: "VIP"
+                reference:
+                  type: string
+                  example: "REF123456"
+              required:
+                - event_name
+                - user_name
+                - price
+                - phone
+                - ticket_type
+      responses:
+        '200':
+          description: Order created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  qr_code_url:
+                    type: string
+                    example: "http://example.com/qr_code/qr_code_name"
+                  pdf_unlock_token:
+                    type: string
+                    example: true
+                  message:
+                    type: string
+                    example: "Order created successfully"
+          
+  /instant-order:
+    post:
+      summary: Create an instant order
+      description: This endpoint allows users to create a new order, generate a QR code, and associate a ticket with the order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_name:
+                  type: string
+                  example: "Kenkey Party"
+                instagram:
+                  type: string
+                  example: "@johnny"
+                email:
+                  type: string
+                  example: "johnametepeagboku@live.com"
+                user_name:
+                  type: string
+                  example: "John Doe"
+                phone:
+                  type: string
+                  example: "+1234567890"
+                ticket_type:
+                  type: string
+                  example: "Regular"
                 reference:
                   type: string
                   example: "REF123456"

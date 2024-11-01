@@ -247,6 +247,7 @@ def create_order():
 
 
 @app_views.route('/instant-order', methods=['POST'], strict_slashes=False)
+@protected()
 def create_instant_order():
     """
     Create a new order, generate a QR code, and associate a ticket with the order.

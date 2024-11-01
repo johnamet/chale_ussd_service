@@ -43,7 +43,7 @@ init_email_service(app)
 # Enable Cross-Origin Resource Sharing (CORS) for all routes
 CORS(app, resources={r"/*": {"origins": "*"}})
 SWAGGER_URL = '/v1/docs'
-API_URL = "http://139.59.185.147:7000/api-services/docs"
+API_URL = "http://app.chaleapp.org/api-service/docs"
 
 swaggerui_blueprint = get_swaggerui_blueprint(
     SWAGGER_URL,
