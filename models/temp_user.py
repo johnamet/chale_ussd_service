@@ -1,20 +1,14 @@
-#!/usr/bin/env python
-"""
-The users module defines the user model/entity
-"""
+#!/usr/bin/env python3
+
+
 from sqlalchemy import Column, String, BigInteger, TIMESTAMP
-from sqlalchemy.sql import func
 
-from models.basemodel import Base, BaseModel
+from models.basemodel import BaseModel, Base
 
 
-class User(BaseModel, Base):
-    """
-    The user model defines the user entity
-    """
-    __tablename__ = 'users'
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+class TempUser(BaseModel, Base):
+    __tablename__ = 'temp_users'
+    instagram = Column(String, nullable=True)
     name = Column(String(255), nullable=False)
     phone = Column(String(255), nullable=True)
     email = Column(String(255), nullable=False, unique=True)
@@ -24,8 +18,6 @@ class User(BaseModel, Base):
     remember_token = Column(String(100), nullable=True)
     google_id = Column(String(255), nullable=True)
     otp = Column(String(255), nullable=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     def __init__(self, name, phone, email, country_id, password, google_id=None, otp=None, email_verified_at=None,
                  remember_token=None, **kwargs):

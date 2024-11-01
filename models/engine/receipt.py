@@ -1,23 +1,25 @@
-from datetime import datetime
-import os
 import io
-import asyncio
+import os
 import tempfile
-from fpdf import FPDF, HTMLMixin
+
 import pikepdf
-from models import cache
-from models.engine.qr_code_engine import QrCodeEngine
-from utils import util
 from PIL import Image
-from aiofiles import open as aio_open
+from dotenv import load_dotenv
+from fpdf import FPDF, HTMLMixin
+
+from models.engine.qr_code_engine import QrCodeEngine
+
+load_dotenv()
+
 
 class Receipt(FPDF, HTMLMixin):
     """Class to generate and encrypt PDF receipts asynchronously for event tickets."""
-    
-    def __init__(self, data):
+
+    def __init__(self, data, paper_size):
         super().__init__()
         self.data = data
         self.logo_stream = None
+        self.paper_size = paper_size
 
     def _add_static_elements(self):
         """Adds static elements like borders, title, and logo to the receipt."""
@@ -37,20 +39,21 @@ class Receipt(FPDF, HTMLMixin):
         self.cell(0, 10, title, ln=True, align="C")
 
     def _load_logo(self, logo_path='./assets/web-logo.png'):
-            """Load, resize, and cache the logo image to reduce lag."""
-            if not self.logo_stream:
-                with Image.open(logo_path) as img:
-                    resized_logo = img.resize((150, 150), Image.Resampling.LANCZOS)
-                    temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                    resized_logo.save(temp_file, format="PNG")
-                    temp_file.close()
-                return temp_file.name
+        """Load, resize, and cache the logo image to reduce lag."""
+        if not self.logo_stream:
+            with Image.open(logo_path) as img:
+                resized_logo = img.resize((150, 150), Image.Resampling.LANCZOS)
+                temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                resized_logo.save(temp_file, format="PNG")
+                temp_file.close()
+            return temp_file.name
 
     def _set_logo(self):
         """Place the logo in the PDF using the cached image stream."""
         logo = self._load_logo()  # Ensure logo is loaded and cached
         x_position = (210 - 50) / 2
         self.image(logo, x=x_position, y=5, w=50, h=50)
+
     def _insert_qr_image(self):
         """Generates and inserts a QR code based on user phone data."""
         qr_engine = QrCodeEngine(self.data['reference'])
@@ -62,17 +65,17 @@ class Receipt(FPDF, HTMLMixin):
     def _set_text(self, text, font_size=14, spacing=100, bold=True, wrap_width=190):
         """Adds HTML-formatted text to the receipt, centering and wrapping lines as needed."""
         self.set_font("Helvetica", "B" if bold else "", font_size)
-        
+
         # Set the x position to the starting point
         self.set_xy(10, spacing)
-        
+
         # First, we will create a temporary buffer to store the multi-cell output
         buffer = io.StringIO()
-        
+
         # Parse and add HTML content
         parser = HTMLTextParser(self, wrap_width)
         parser.feed(text)
-        
+
         # Get the total height after wrapping
         total_height = parser.total_height  # Assuming your HTML parser can track this
 
@@ -88,7 +91,6 @@ class Receipt(FPDF, HTMLMixin):
         # Move the cursor down by total_height after rendering
         self.set_y(spacing + total_height)
 
-
     def _add_map_link(self):
         """Adds a clickable Google Maps link to the event location in the PDF."""
         self.set_xy(10, 265)
@@ -100,26 +102,25 @@ class Receipt(FPDF, HTMLMixin):
         # Add a clickable phone number
         phone_link = f"tel:{os.getenv('CUSTOMER_SERVICE_PHONE')}"  # Format phone number for dialing
         self.set_xy(10, 255)  # Position below the map link
-        self.set_text_color(0, 0, 255)
-        self.cell(0, 10, f"{self.data['phone']}", align="C", link=phone_link)
+        self.cell(0, 10, f"{os.getenv('CUSTOMER_SERVICE_ADDRESS')}", align="C", link=phone_link)
 
     async def generate_receipt(self):
         """Generates the receipt PDF content asynchronously."""
         self.add_page()
         self._add_static_elements()
-        
+
         # Add dynamic elements
         self._insert_qr_image()
         self._set_text(self.data['name'].upper(), font_size=16, spacing=133)
-        
+
         start_time = self.data['start_date']
         end_time = self.data['end_date']
         self._set_text(f'{start_time} - {end_time}', font_size=14, spacing=140)
         self._set_text(f"For event information, Contact",
-                        spacing=250,
-                        font_size=10, bold=False)
+                       spacing=250,
+                       font_size=10, bold=False)
         self._add_phone_link()
-        
+
         # Ticket and user details
         self._set_text(self.data['ticket_id'], font_size=12, spacing=125)
         self._set_text(self.data['ticket_type'], font_size=12, spacing=147)
@@ -129,9 +130,9 @@ class Receipt(FPDF, HTMLMixin):
         self._set_text(f"Ticket Holder: {self.data['name'].upper()}", spacing=220)
         self._set_text(f"Reference Number: {self.data['reference']}", spacing=230)
         self._set_text(f"Telephone Number: {self.data['phone']}", spacing=240)
-        
+
         self._add_map_link()
-        
+
         pdf_bytes = self.output(dest="S").encode("latin1")
         return io.BytesIO(pdf_bytes)
 
@@ -151,23 +152,122 @@ class Receipt(FPDF, HTMLMixin):
 
         # Remove the temporary file
         os.remove(temp_file_path)
-        
+
         output.seek(0)  # Reset to the start of the stream for reading
         return output
 
 
+class POSReceipt(FPDF, HTMLMixin):
+    """Class to generate a POS-sized receipt optimized for thermal printers."""
+
+    def __init__(self, data):
+        # Set up page size and element sizes for thermal paper
+        pos_width_mm = 58  # Typical width for POS receipts in mm
+        pos_height_mm = 100  # Adjust as necessary for desired height
+        self.qr_size = 30  # Smaller QR code for POS receipts
+        self.font_size_main = 6  # Smaller font for POS
+        self.margin_x = 5  # Reduced margins
+        self.margin_y = 5
+
+        # Initialize FPDF with custom POS paper dimensions
+        super().__init__(format=(pos_width_mm, pos_height_mm))
+
+        self.data = data
+        self.logo_stream = None
+
+    def add_static_elements(self):
+        """Adds static elements like borders, title, and logo for the POS receipt."""
+        self.set_line_width(0.5)
+        self.set_draw_color(0, 128, 0)
+        self.rect(self.margin_x, self.margin_y, self.w - 2 * self.margin_x, self.h - 2 * self.margin_y)
+
+        # Add title and logo
+        self.set_title()
+        self.set_logo()
+
+    def set_title(self, title='Benny Osbon Limited'):
+        """Sets the receipt title with smaller text for POS size."""
+        self.set_font("Helvetica", "B", self.font_size_main - 2)
+        self.cell(0, 1, title, ln=True, align="C")
+
+    def load_logo(self, logo_path='./assets/web-logo.png'):
+        """Load, resize, and cache the logo image for POS dimensions."""
+        if not self.logo_stream:
+            with Image.open(logo_path) as img:
+                resized_logo = img.resize((100, 100), Image.Resampling.LANCZOS)
+                temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                resized_logo.save(temp_file, format="PNG")
+                temp_file.close()
+            self.logo_stream = temp_file.name
+        return self.logo_stream
+
+    def set_logo(self):
+        """Place the logo in the PDF using the cached image stream."""
+        logo = self.load_logo()
+        x_position = (self.w - 30) / 2
+        self.image(logo, x=x_position, y=2.5, w=30, h=30)
+
+    def insert_qr_image(self):
+        """Generates and inserts a QR code based on user data."""
+        qr_engine = QrCodeEngine(self.data['reference'])
+        qr_path = qr_engine.generate_code()
+        x_position = (self.w - self.qr_size) / 2
+        self.image(qr_path, x=x_position, y=20, w=self.qr_size, h=self.qr_size)
+
+    def set_text(self, text, spacing, bold=True):
+        """Adds text to the receipt with POS-sized adjustments."""
+        self.set_font("Helvetica", "B" if bold else "", self.font_size_main)
+        self.set_xy(self.margin_x + 5, spacing)
+        self.cell(0, 10, text, ln=True, align="C")
+
+    def _add_phone_link(self):
+        # Add a clickable phone number
+        phone_link = f"tel:{os.getenv('CUSTOMER_SERVICE_PHONE', '233 27 517 7177')}"  # Format phone number for dialing
+        self.set_xy(self.margin_x + 5, 69.95)  # Position below the map link
+        self.cell(0, 10, f"Call us on:  {os.getenv('CUSTOMER_SERVICE_PHONE')}", align="C", link=phone_link)
+
+    async def generate_receipt(self):
+        """Generates the receipt content based on POS dimensions."""
+        self.add_page()
+        self.add_static_elements()
+
+        # Add QR code and user details
+        self.insert_qr_image()
+        self.set_text(self.data['event_name'].upper(), 44)
+        self.set_text(self.data['name'].upper(), spacing=47)
+        self.set_text(f"Reference Number: {self.data['reference']}", spacing=50)
+        self.set_text(f"Ticket ID: {self.data['ticket_id']}", spacing=53)
+        self.set_text(f"Ticket Type: {self.data['ticket_type']}", spacing=59)
+
+        start_time = self.data['start_date']
+        end_time = self.data['end_date']
+        self.set_text(f'{start_time}'.upper(), spacing=62)
+        self.set_text('TO', spacing=65)
+        self.set_text(f'{end_time}'.upper(), spacing=68)
+
+        self._add_phone_link()
+
+        pdf_bytes = self.output(dest="S").encode("latin1")
+        return io.BytesIO(pdf_bytes)
+
+    async def create_receipt(self):
+        """Generates the POS receipt and returns it as an in-memory PDF file."""
+        return await self.generate_receipt()
+
+
 from html.parser import HTMLParser
+
 
 class HTMLTextParser(HTMLParser):
     """Simple HTML parser for basic tag handling in FPDF."""
-    
+
     def __init__(self, pdf, wrap_width):
         super().__init__()
         self.pdf = pdf
         self.wrap_width = wrap_width
         self.font_style = ""
         self.total_height = 0
-    
+
     def handle_starttag(self, tag, attrs):
         """Apply font styles based on HTML tags."""
         if tag == "b":

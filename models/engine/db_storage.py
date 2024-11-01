@@ -7,11 +7,12 @@ Provides methods to add, update, delete, and retrieve models, with support for p
 import logging
 import os
 from datetime import datetime
+from sqlite3 import OperationalError
+
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import and_, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlite3 import OperationalError
 
 from models.basemodel import Base
 
@@ -127,6 +128,35 @@ class DBStorage:
             print(f"Error retrieving object by name: {e}")
             return None
 
+    def dynamic_query(self, cls, filters=None, page=None, page_size=10):
+        """
+        Performs a dynamic query on the given class based on the provided filters.
+
+        :param cls: The class of the objects to query.
+        :param filters: A dictionary of field-value pairs to filter by.
+        :param page: Optional page number for pagination (1-indexed).
+        :param page_size: Number of items per page for pagination.
+        :return: A list of matching objects or an empty list if none found.
+        """
+        try:
+            # Start with a base query for the class
+            query = self.__session.query(cls)
+
+            # Apply filters dynamically
+            if filters:
+                conditions = [getattr(cls, key) == value for key, value in filters.items()]
+                query = query.filter(and_(*conditions))
+
+            # Apply pagination
+            query = self.__apply_pagination(query, page, page_size)
+
+            # Execute the query and return results as dictionaries
+            return [obj.to_dict() for obj in query.all()]
+
+        except SQLAlchemyError as e:
+            print(f"Error during dynamic query: {e}")
+            return []
+
     def count(self, cls):
         """
         Count the number of objects in the database by the class type.
@@ -159,6 +189,34 @@ class DBStorage:
                 return result
             else:
                 query = self.__apply_pagination(self.__session.query(cls), page, page_size)
+                return [obj.to_dict() for obj in query.all()]
+        except SQLAlchemyError as e:
+            print(f"Error retrieving all objects: {e}")
+            return []
+
+    def all_valid(self, cls=None, page=None, page_size=10):
+        """
+        Retrieves all objects from the database for a given class with optional pagination.
+        If no class is provided, returns all objects across all classes.
+        :param cls: The class of the objects to retrieve. If None, retrieves all objects.
+        :param page: Page number for pagination (1-indexed).
+        :param page_size: Number of items per page for pagination.
+        :return: A list of objects or a dictionary of lists if cls is None.
+        """
+        try:
+            if cls is None:
+                result = {}
+                from models import classes
+                for clss in classes.values():
+                    objs = self.__apply_pagination(self.__session.query(clss)
+                                                   .filter(clss.end_date > datetime.now().date()),
+                                                   page, page_size).all()
+                    result[clss.__name__] = [obj.to_dict() for obj in objs]
+                return result
+            else:
+                query = self.__apply_pagination(self.__session.query(cls)
+                                                .filter(cls.end_date > datetime.now().date())
+                                                , page, page_size)
                 return [obj.to_dict() for obj in query.all()]
         except SQLAlchemyError as e:
             print(f"Error retrieving all objects: {e}")

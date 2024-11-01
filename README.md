@@ -2,7 +2,8 @@
 
 ## Overview
 
-Welcome to the Chale Services API! This API facilitates the management of orders, users, tickets, and QR codes for events. It provides endpoints for creating and retrieving orders while ensuring secure access and efficient performance.
+Welcome to the Chale Services API! This API facilitates the management of orders, users, tickets, and QR codes for
+events. It provides endpoints for creating and retrieving orders while ensuring secure access and efficient performance.
 
 ## Features
 
@@ -17,8 +18,10 @@ Welcome to the Chale Services API! This API facilitates the management of orders
 - **Backend**: Flask
 - **Database**: MySQL
 - **Authentication**: API KEY
+
 <!-- - **Caching**: Redis (if applicable)
 - **Message Broker**: RabbitMQ (if applicable) -->
+
 - **Logging**: Python's built-in logging module
 
 ## Getting Started
@@ -72,48 +75,50 @@ Ensure you have the following installed:
 #### Orders
 
 - **GET /orders**
-  - Retrieve paginated orders.
-  - **Query Parameters**: `page`, `page_size`
+    - Retrieve paginated orders.
+    - **Query Parameters**: `page`, `page_size`
 
 - **POST /order**
-  - Create a new order with a QR code.
-  - **Request Body**:
-    ```json
-    {
-      "event_name": "Concert 2024",
-      "user_name": "John Doe",
-      "price": 50.0,
-      "phone": "1234567890",
-      "ticket_type": "VIP",
-      "reference": "ABC12345"
-    }
-    ```
+    - Create a new order with a QR code.
+    - **Request Body**:
+      ```json
+      {
+        "event_name": "Concert 2024",
+        "user_name": "John Doe",
+        "price": 50.0,
+        "phone": "1234567890",
+        "ticket_type": "VIP",
+        "reference": "ABC12345"
+      }
+      ```
 
 #### Status and Health
 
 - **GET /status**
-  - Check server status.
-  
+    - Check server status.
+
 - **GET /health**
-  - Check database connection status.
+    - Check database connection status.
 
 #### QR Code
 
 - **GET /qr_code/<filename>**
-  - Serve QR code files from the server.
+    - Serve QR code files from the server.
 
 #### Documentation
 
 - **GET /docs/**
-  - Access the Swagger documentation in YAML format.
+    - Access the Swagger documentation in YAML format.
 
 ## Logging
 
-This application uses Python's built-in logging module for error tracking and debugging. Logs are recorded to help identify issues and maintain a clear record of events.
+This application uses Python's built-in logging module for error tracking and debugging. Logs are recorded to help
+identify issues and maintain a clear record of events.
 
 ## Contributing
 
-Contributions are welcome! If you have suggestions for improvements or want to report a bug, please open an issue or submit a pull request.
+Contributions are welcome! If you have suggestions for improvements or want to report a bug, please open an issue or
+submit a pull request.
 
 ## License
 

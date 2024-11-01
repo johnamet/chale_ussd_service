@@ -5,6 +5,7 @@ like id, timestamps, and CRUD operations.
 """
 
 import datetime
+
 from sqlalchemy import TIMESTAMP, BigInteger, Column, func
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -35,6 +36,11 @@ class BaseModel(Base):
         obj["created_at"] = self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         obj["updated_at"] = self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
         obj["deleted_at"] = self.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if self.deleted_at else None
+        obj["start_date"] = self.start_date.strftime('%Y-%m-%d') if self.start_date else None
+        obj["start_time"] = self.start_date.strftime('%H:%M:%S') if self.start_time else None
+        obj["end_date"] = self.end_date.strftime('%Y-%m-%d') if self.end_date else None
+        obj["end_time"] = self.end_time.strftime('%H:%M:%S') if self.end_time else None
+
         return obj
 
     def delete(self):
@@ -64,6 +70,11 @@ class BaseModel(Base):
         return storage.all(cls, page=page, page_size=page_size)
 
     @classmethod
+    def all_valid(cls, page=None, page_size=10):
+        from models import storage
+        return storage.all_valid(cls, page, page_size)
+
+    @classmethod
     def get(cls, _id):
         from models import storage
         return storage.get(cls, _id)
@@ -77,3 +88,9 @@ class BaseModel(Base):
     def count(cls):
         from models import storage
         return storage.count(cls=cls)
+
+    @classmethod
+    def dynamic_query(cls, filters=None, page=None, page_size=10):
+        from models import storage
+        return storage.dynamic_query(cls, filters=filters, page=page,
+                                     page_size=page_size)

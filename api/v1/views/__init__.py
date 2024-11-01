@@ -8,3 +8,4 @@ app_views = Blueprint('app_views', __name__, url_prefix='/api-services/')
 
 from api.v1.views.index import *
 from api.v1.views.orders import *
+from api.v1.views.events import *
