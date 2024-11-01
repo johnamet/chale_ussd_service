@@ -278,7 +278,7 @@ def create_instant_order():
     """
     try:
         data = request.get_json()
-        required_fields = ['event_name', 'user_name', 'price', 'ticket_type']
+        required_fields = ['event_name', 'user_name', 'email']
 
         for field in required_fields:
             if field not in data:
