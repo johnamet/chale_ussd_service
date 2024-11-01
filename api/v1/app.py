@@ -12,7 +12,7 @@ from flask import Flask, jsonify, make_response, request
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from typing import Any
-
+from models.engine.mail_service import init_app as init_email_service
 from api.v1.views import app_views
 
 # Set up basic logging configuration
@@ -28,6 +28,15 @@ logger.addHandler(file_handler)
 # Create the Flask application
 app = Flask(__name__)
 app.config['QR_CODE_DIR'] = os.getenv('QR_CODE_DIR', './qrcodes')
+
+app.config['MAIL_SERVER']= 'live.smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = 'api'
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+init_email_service(app)
 
 # Enable Cross-Origin Resource Sharing (CORS) for all routes
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -63,7 +72,9 @@ def bad_request(error: Exception) -> Any:
     logger.error('400 Bad Request: %s', error)
     return make_response(
         jsonify({
+            'success': False,
             'status': 'Error',
+            'message': str(error),
             'details': 'Bad Request - The server could not understand the request due to invalid syntax.'
         }), 400
     )
@@ -81,6 +92,9 @@ def unauthorized(error: Exception) -> Any:
     logger.error('401 Unauthorized: %s', error)
     return make_response(
         jsonify({
+            'success': False,
+            'status': 'Error',
+            'message': str(error),
             'status': 'Error',
             'details': f'Unauthorized - The client must authenticate itself to get the requested response. {error}'
         }), 401
@@ -99,6 +113,9 @@ def forbidden(error: Exception) -> Any:
     logger.error('403 Forbidden: %s', error)
     return make_response(
         jsonify({
+            'success': False,
+            'status': 'Error',
+            'message': str(error),
             'status': 'Error',
             'details': 'Forbidden - The client does not have access rights to the requested content.'
         }), 403
@@ -117,6 +134,9 @@ def not_found(error: Exception) -> Any:
     logger.error('404 Not Found: %s', error)
     return make_response(
         jsonify({
+            'success': False,
+            'status': 'Error',
+            'message': str(error),
             'status': 'Error',
             'details': 'Not Found - The server cannot find the requested resource.'
         }), 404
@@ -135,6 +155,9 @@ def method_not_allowed(error: Exception) -> Any:
     logger.error('405 Method Not Allowed: %s', error)
     return make_response(
         jsonify({
+            'success': False,
+            'status': 'Error',
+            'message': str(error),
             'status': 'Error',
             'details': 'Method Not Allowed - The request method is known but has been disabled and cannot be used.'
         }), 405
@@ -153,6 +176,9 @@ def internal_error(error: Exception) -> Any:
     logger.error('500 Internal Server Error: %s', error)
     return make_response(
         jsonify({
+            'success': False,
+            'status': 'Error',
+            'message': str(error),
             'status': 'Error',
             'details': 'Internal Server Error - The server has encountered a situation it doesn\'t know how to handle.'
         }), 500

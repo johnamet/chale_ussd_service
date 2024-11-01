@@ -1,10 +1,12 @@
 import logging
 import os
 from flask import abort, jsonify, make_response, send_file, send_from_directory
+from flask_mail import Message
 
 from api.v1.views import app_views
 from models import cache
-from models.engine.receipt import Receipt
+from models.engine.receipt import Receipt, POSReceipt
+from models.engine.mail_service import mail
 
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
@@ -67,6 +69,13 @@ def get_health():
         }
     """
     from models import storage
+    # try:
+    #     msg = Message(subject='Hello from the other side!', sender='no-reply@chaleapp.org', recipients=['johnametepeagboku@live.com'])
+    #     msg.body = "Hey Paul, sending you this email from my Flask app, lmk if it works."
+    #     mail.send(msg)
+    #     return "Message sent!"
+    # except Exception as e:
+    #     logger.error(e)
 
     return jsonify({
         'success': True,
@@ -74,7 +83,7 @@ def get_health():
     }), 200
 
 
-@app_views.route('/qr_code/<filename>')
+@app_views.route('/qr_code/<filename>', methods=['GET'])
 async def get_qr_code(filename):
     """
     Retrieve and serve a QR code receipt PDF asynchronously.
@@ -95,9 +104,13 @@ async def get_qr_code(filename):
     """
     try:
         # Generate the receipt using the Receipt class
-        print(filename)
-        receipt = Receipt(cache.hget_all(filename))
+        data = cache.hget_all(filename)
+
+        receipt = Receipt(data)
+
+
         receipt_stream = await receipt.create_receipt()
+
 
         # Return the PDF as a downloadable file
         return send_file(
@@ -114,6 +127,51 @@ async def get_qr_code(filename):
     except Exception as e:
         # General exception handling
         abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
+
+
+@app_views.route('/pos-qrcode/<filename>', methods=['GET'])
+async def get_pos_code(filename):
+    """
+    Retrieve and serve a QR code receipt PDF asynchronously.
+
+    This endpoint generates and serves a QR code receipt PDF file directly from memory.
+    If the filename corresponds to a valid ticket in the cache, it will generate a PDF
+    receipt for download or display. 
+
+    Parameters:
+        filename (str): Unique identifier for the ticket data, used to generate the receipt.
+
+    Returns:
+        200 OK: Returns the QR code receipt as a downloadable PDF file.
+        404 Not Found: The requested ticket data does not exist.
+
+    Example Usage:
+        GET /qr_code/sample_qr_code.pdf
+    """
+    try:
+        # Generate the receipt using the Receipt class
+        data = cache.hget_all(filename)
+        receipt = POSReceipt(data)
+        receipt_stream = await receipt.create_receipt()
+
+
+        # Return the PDF as a downloadable file
+        return send_file(
+            receipt_stream,
+            download_name=f"{filename}_receipt.pdf",
+            mimetype='application/pdf'
+        )
+
+        # return jsonify(f"Hello World, {filename}"), 200
+
+    except KeyError as e:
+        # Handle case where ticket data doesn't exist in the cache
+        abort(404, description=f"The requested ticket data was not found. {e}")
+    except Exception as e:
+        # General exception handling
+        abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
+
+
 @app_views.route('/docs/', methods=['GET'], strict_slashes=False)
 def swagger_yaml():
     """
