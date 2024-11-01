@@ -47,6 +47,7 @@ from models import cache
 from models.engine.mail_service import send_email
 from models.event import Event
 from models.order import Order
+from models.social import Social
 from models.temp_user import TempUser
 from models.tickets import Ticket
 from models.tour import Tour
@@ -288,27 +289,31 @@ def create_instant_order():
                     "error": "Database connection error"
                 }), 200
 
-        event_name = data.get('event_name')
+        event_name = data.get('event_name', 'Private Event')
         user_name = data.get('user_name')
         price = data.get('price', 0)
         phone = data.get('phone')
         ticket_type = data.get('ticket_type', 'regular')
         reference = data.get('reference', f'ref-{generate_token()}')
-        instagram = data.get('instagram')
+        instagram = data.get('instagram', )
         email = data.get('email')
 
         user = User.get(phone)
+        if user:
+                social = Social(platform="instagram", user_id=user.id,
+                                handle=instagram)
+                social.save()
         if not user:
-            user = TempUser.dynamic_query({'email': email,
-                                           'name': user_name,
-                                           'instagram': instagram})
+            user = User(id=phone, phone=phone,
+                        password=phone,
+                        country_id=1, name=user_name,
+                        email=email if email else str(phone))
 
-            if not user:
-                if instagram or email:
-                    user = TempUser(phone=phone, email=email, name=user_name, password=phone, country_id=1,
-                                    instagram=instagram)
-                else:
-                    user = User(id=phone, phone=phone, password=phone, country_id=1, name=user_name, email=str(phone))
+            if instagram:
+                social = Social(platform="instagram", user_id=user.id,
+                                handle=instagram)
+
+                social.save()
             user.save()
 
         event = Event.get_by_name(event_name) or Tour.get_by_name(event_name)
@@ -337,7 +342,7 @@ def create_instant_order():
         data = {
             'phone': phone,
             'name': user_name,
-            'event_coordinates': event.coordinates if event else 'www.chaleapp.org',
+            'event_coordinates': event.coordinates if event else 'www.app.chaleapp.org',
             'event_name': event_name,
             'start_date': util.format_date_time(event.start_date, event.start_time) if event else None,
             'end_date': util.format_date_time(event.end_date, event.end_time) if event else None,

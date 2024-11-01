@@ -32,7 +32,7 @@ class BaseModel(Base):
         """
         Converts the model instance into a dictionary format.
         """
-        obj = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        obj = {column.platform: getattr(self, column.platform) for column in self.__table__.columns}
         obj["created_at"] = self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         obj["updated_at"] = self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
         obj["deleted_at"] = self.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if self.deleted_at else None
