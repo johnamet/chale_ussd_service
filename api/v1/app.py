@@ -8,12 +8,14 @@ with integrated Swagger documentation using Flasgger.
 
 import logging
 import os
-from flask import Flask, jsonify, make_response, request
+from typing import Any
+
+from flask import Flask, jsonify, make_response
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
-from typing import Any
-from models.engine.mail_service import init_app as init_email_service
+
 from api.v1.views import app_views
+from models.engine.mail_service import init_app as init_email_service
 
 # Set up basic logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -29,7 +31,7 @@ logger.addHandler(file_handler)
 app = Flask(__name__)
 app.config['QR_CODE_DIR'] = os.getenv('QR_CODE_DIR', './qrcodes')
 
-app.config['MAIL_SERVER']= 'live.smtp.mailtrap.io'
+app.config['MAIL_SERVER'] = 'live.smtp.mailtrap.io'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USERNAME'] = 'api'
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
@@ -56,7 +58,6 @@ app.register_blueprint(swaggerui_blueprint)
 
 # Register the blueprint for API routes
 app.register_blueprint(app_views)
-
 
 
 # Error Handlers for the Flask Application

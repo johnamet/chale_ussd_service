@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 
 import re
-from api.v1.views import app_views
-import logging
-from flask import jsonify, request, abort
-
-from models.temp_user import TempUser
-
 
 
 def validate_data(data):
@@ -23,6 +17,3 @@ def validate_data(data):
     if not data.get("your-instagram"):
         errors.append("Instagram handle is required.")
     return errors
-
-
-

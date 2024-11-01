@@ -1,17 +1,13 @@
-from datetime import datetime
-import os
 import io
-import asyncio
+import os
 import tempfile
 
+import pikepdf
+from PIL import Image
 from dotenv import load_dotenv
 from fpdf import FPDF, HTMLMixin
-import pikepdf
-from models import cache
+
 from models.engine.qr_code_engine import QrCodeEngine
-from utils import util
-from PIL import Image
-from aiofiles import open as aio_open
 
 load_dotenv()
 
@@ -169,7 +165,7 @@ class POSReceipt(FPDF, HTMLMixin):
         pos_width_mm = 58  # Typical width for POS receipts in mm
         pos_height_mm = 100  # Adjust as necessary for desired height
         self.qr_size = 30  # Smaller QR code for POS receipts
-        self.font_size_main = 6 # Smaller font for POS
+        self.font_size_main = 6  # Smaller font for POS
         self.margin_x = 5  # Reduced margins
         self.margin_y = 5
 
@@ -221,13 +217,13 @@ class POSReceipt(FPDF, HTMLMixin):
     def set_text(self, text, spacing, bold=True):
         """Adds text to the receipt with POS-sized adjustments."""
         self.set_font("Helvetica", "B" if bold else "", self.font_size_main)
-        self.set_xy(self.margin_x+5, spacing)
+        self.set_xy(self.margin_x + 5, spacing)
         self.cell(0, 10, text, ln=True, align="C")
 
     def _add_phone_link(self):
         # Add a clickable phone number
         phone_link = f"tel:{os.getenv('CUSTOMER_SERVICE_PHONE', '233 27 517 7177')}"  # Format phone number for dialing
-        self.set_xy(self.margin_x+5, 69.95)  # Position below the map link
+        self.set_xy(self.margin_x + 5, 69.95)  # Position below the map link
         self.cell(0, 10, f"Call us on:  {os.getenv('CUSTOMER_SERVICE_PHONE')}", align="C", link=phone_link)
 
     async def generate_receipt(self):
@@ -250,8 +246,6 @@ class POSReceipt(FPDF, HTMLMixin):
         self.set_text(f'{end_time}'.upper(), spacing=68)
 
         self._add_phone_link()
-
-
 
         pdf_bytes = self.output(dest="S").encode("latin1")
         return io.BytesIO(pdf_bytes)

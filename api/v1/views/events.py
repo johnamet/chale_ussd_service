@@ -25,14 +25,16 @@ Usage:
     application for a complete order management solution.
 """
 
-from flask import abort, jsonify, request
-from api.v1.views import app_views
-from models.event import Event
 import logging
 
+from flask import abort, jsonify, request
+
+from api.v1.views import app_views
+from models.event import Event
 from models.tour import Tour
 
 logger = logging.getLogger(__name__)
+
 
 @app_views.route('/events', methods=['GET'], strict_slashes=False)
 def get_events():
@@ -91,7 +93,8 @@ def get_events():
     except Exception as e:
         logger.error(f'Failed to retrieve events {e}')
         abort(500, description=f'Failed to retrieve events, {e}')
-    
+
+
 @app_views.route('/valid-events', methods=['GET'], strict_slashes=False)
 def get_valid_events():
     """
@@ -149,15 +152,13 @@ def get_valid_events():
         abort(500, description=f'Failed to valid retrieve events, {e}')
 
 
-
 @app_views.route('/event/<event_id>', methods=['GET'], strict_slashes=False)
 def get_event(event_id):
-
     try:
         event = Event.get(event_id)
         if not event:
             event = Tour.get(event_id)
-        
+
         if not event:
             abort(400, description='No event was found')
         response = {
@@ -167,11 +168,7 @@ def get_event(event_id):
         }
 
         return jsonify(response), 200
-    
+
     except Exception as e:
         logger.error(f'Something happenned. {e}')
         abort(500, description='Failed to fetch event')
-    
-
-
-

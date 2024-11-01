@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
 
-from sqlalchemy import Column, Integer, String, BigInteger, TIMESTAMP, func
+from sqlalchemy import Column, String, BigInteger, TIMESTAMP
 
 from models.basemodel import BaseModel, Base
-from models.user import User
 
 
 class TempUser(BaseModel, Base):
-
     __tablename__ = 'temp_users'
     instagram = Column(String, nullable=True)
     name = Column(String(255), nullable=False)

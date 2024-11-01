@@ -5,8 +5,10 @@ from flask_mail import Mail, Message
 # Initialize Flask-Mail
 mail = Mail()
 
+
 def init_app(app):
     mail.init_app(app)
+
 
 def send_email(subject, recipients, body, html_body=None, attachments=None):
     """

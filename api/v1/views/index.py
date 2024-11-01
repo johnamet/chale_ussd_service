@@ -1,12 +1,11 @@
 import logging
 import os
-from flask import abort, jsonify, make_response, send_file, send_from_directory
-from flask_mail import Message
+
+from flask import abort, jsonify, make_response, send_file
 
 from api.v1.views import app_views
 from models import cache
 from models.engine.receipt import Receipt, POSReceipt
-from models.engine.mail_service import mail
 
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
@@ -68,7 +67,6 @@ def get_health():
             "is_live": true
         }
     """
-    from models import storage
     # try:
     #     msg = Message(subject='Hello from the other side!', sender='no-reply@chaleapp.org', recipients=['johnametepeagboku@live.com'])
     #     msg.body = "Hey Paul, sending you this email from my Flask app, lmk if it works."
@@ -108,9 +106,7 @@ async def get_qr_code(filename):
 
         receipt = Receipt(data)
 
-
         receipt_stream = await receipt.create_receipt()
-
 
         # Return the PDF as a downloadable file
         return send_file(
@@ -153,7 +149,6 @@ async def get_pos_code(filename):
         data = cache.hget_all(filename)
         receipt = POSReceipt(data)
         receipt_stream = await receipt.create_receipt()
-
 
         # Return the PDF as a downloadable file
         return send_file(

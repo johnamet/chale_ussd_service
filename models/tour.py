@@ -3,7 +3,9 @@
 The tours module defines the tour model/entity.
 """
 from sqlalchemy import Column, String, Integer, BigInteger, Numeric, Date, Time, Text
+
 from models.basemodel import BaseModel, Base
+
 
 class Tour(BaseModel, Base):
     """

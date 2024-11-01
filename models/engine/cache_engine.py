@@ -9,12 +9,14 @@ for efficient data retrieval and updates.
 
 import os
 from typing import Dict, Union, List, Optional
+
 import redis
 
 # Redis connection parameters from environment variables
 _CACHE_HOST = os.getenv('REDIS_HOST', 'localhost')
 _CACHE_PORT = int(os.getenv('REDIS_PORT', 6379))
 _CACHE_DB = int(os.getenv('REDIS_DB', 0))
+
 
 class Cache:
     """Redis-based cache management system for storing and retrieving data."""
@@ -71,7 +73,6 @@ class Cache:
         except Exception as e:
             print(f"Error retrieving hash set from Redis: {e}")
             return None
-
 
     def set(self, key: str, value: Union[str, bytes], expire: Optional[int] = None) -> bool:
         """

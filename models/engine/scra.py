@@ -1,13 +1,12 @@
-from datetime import datetime
-import os
 import io
-import asyncio
+import os
 import tempfile
-from fpdf import FPDF, HTMLMixin
+
 import pikepdf
-from models.engine.qr_code_engine import QrCodeEngine
 from PIL import Image
-from aiofiles import open as aio_open
+from fpdf import FPDF, HTMLMixin
+
+from models.engine.qr_code_engine import QrCodeEngine
 
 
 class Receipt(FPDF, HTMLMixin):

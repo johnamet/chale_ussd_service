@@ -5,15 +5,14 @@ QrCodeEngine - Generates QR codes with embedded logos for event tickets.
 This class creates a QR code based on unique user data and overlays a logo in the center.
 """
 
-import io
-import os
-import qrcode
-from PIL import Image
-from datetime import datetime
-from dotenv import load_dotenv
 import tempfile
 
+import qrcode
+from PIL import Image
+from dotenv import load_dotenv
+
 load_dotenv()
+
 
 class QrCodeEngine:
     """Class for generating QR codes with embedded logos."""
@@ -26,7 +25,6 @@ class QrCodeEngine:
             user_id (str): Unique identifier for the user.
         """
         self.reference = reference
-
 
     def generate_code(self):
         """

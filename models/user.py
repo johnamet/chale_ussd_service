@@ -2,7 +2,6 @@
 """
 The users module defines the user model/entity
 """
-from datetime import datetime
 from sqlalchemy import Column, String, BigInteger, TIMESTAMP
 from sqlalchemy.sql import func
 

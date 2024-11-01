@@ -36,25 +36,27 @@ Author: [John Ametepe Agboku]
 Date: 2024
 """
 
-from datetime import datetime
 import logging
-from flask import abort, jsonify, request
 import os
+from datetime import datetime
+
+from flask import abort, jsonify, request
 
 from api.v1.views import app_views
+from models import cache
 from models.engine.mail_service import send_email
+from models.event import Event
 from models.order import Order
 from models.temp_user import TempUser
 from models.tickets import Ticket
 from models.tour import Tour
 from models.user import User
-from models.event import Event
 from utils import util
 from utils.util import generate_token, protected
-from models import cache
 
 # Configure logger
 logger = logging.getLogger(__name__)
+
 
 @app_views.route('/orders', methods=['GET'], strict_slashes=False)
 @protected()
@@ -164,7 +166,7 @@ def create_order():
     try:
         data = request.get_json()
         required_fields = ['event_name', 'user_name', 'price', 'ticket_type']
-        
+
         for field in required_fields:
             if field not in data:
                 return jsonify({
@@ -187,7 +189,7 @@ def create_order():
 
         event = Event.get_by_name(event_name) or Tour.get_by_name(event_name)
         event_id = event.id if event else None
-        ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, 
+        ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1,
                         event_id=event_id)
 
         ticket.save()
@@ -243,7 +245,6 @@ def create_order():
         }), 200
 
 
-
 @app_views.route('/instant-order', methods=['POST'], strict_slashes=False)
 def create_instant_order():
     """
@@ -278,7 +279,7 @@ def create_instant_order():
     try:
         data = request.get_json()
         required_fields = ['event_name', 'user_name', 'price', 'ticket_type']
-        
+
         for field in required_fields:
             if field not in data:
                 return jsonify({
@@ -294,25 +295,25 @@ def create_instant_order():
         ticket_type = data.get('ticket_type', 'regular')
         reference = data.get('reference', f'ref-{generate_token()}')
         instagram = data.get('instagram')
-        email =  data.get('email')
-        
+        email = data.get('email')
 
         user = User.get(phone)
         if not user:
-            user = TempUser.dynamic_query({'email':email, 
-                                           'name':user_name,
-                                           'instagram':instagram})
-            
+            user = TempUser.dynamic_query({'email': email,
+                                           'name': user_name,
+                                           'instagram': instagram})
+
             if not user:
                 if instagram or email:
-                    user = TempUser(phone=phone, email=email, name=user_name, password=phone, country_id=1, instagram=instagram)
+                    user = TempUser(phone=phone, email=email, name=user_name, password=phone, country_id=1,
+                                    instagram=instagram)
                 else:
                     user = User(id=phone, phone=phone, password=phone, country_id=1, name=user_name, email=str(phone))
             user.save()
 
         event = Event.get_by_name(event_name) or Tour.get_by_name(event_name)
         event_id = event.id if event else None
-        ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1, 
+        ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1,
                         event_id=event_id)
 
         ticket.save()
@@ -353,7 +354,6 @@ def create_instant_order():
 
         mail_code_url = f'{os.getenv("SERVER_ADDRESS")}qr_code/{file_name}'
         pos_code_url = f'{os.getenv("SERVER_ADDRESS")}pos-qrcode/{file_name}'
-
 
         if email:
             body = f"""
@@ -401,8 +401,8 @@ def create_instant_order():
 </body>
 </html>
                 """
-            
-            send_email(subject=f"Eii Chalé! You're All Set for {event_name} 🎉",recipients= [email],
+
+            send_email(subject=f"Eii Chalé! You're All Set for {event_name} 🎉", recipients=[email],
                        body=body,
                        html_body=body)
 
@@ -419,4 +419,3 @@ def create_instant_order():
             "message": "Error creating an order",
             "error": "Database connection error"
         }), 200
-

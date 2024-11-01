@@ -5,6 +5,7 @@ like id, timestamps, and CRUD operations.
 """
 
 import datetime
+
 from sqlalchemy import TIMESTAMP, BigInteger, Column, func
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -40,7 +41,6 @@ class BaseModel(Base):
         obj["end_date"] = self.end_date.strftime('%Y-%m-%d') if self.end_date else None
         obj["end_time"] = self.end_time.strftime('%H:%M:%S') if self.end_time else None
 
-
         return obj
 
     def delete(self):
@@ -56,7 +56,6 @@ class BaseModel(Base):
             # Handle exceptions (log them, re-raise, etc.)
             print(f"Error saving model: {e}")
 
-
     def update(self):
         from models import storage
         try:
@@ -69,7 +68,7 @@ class BaseModel(Base):
     def all(cls, page=None, page_size=10):
         from models import storage
         return storage.all(cls, page=page, page_size=page_size)
-    
+
     @classmethod
     def all_valid(cls, page=None, page_size=10):
         from models import storage
@@ -89,7 +88,7 @@ class BaseModel(Base):
     def count(cls):
         from models import storage
         return storage.count(cls=cls)
-    
+
     @classmethod
     def dynamic_query(cls, filters=None, page=None, page_size=10):
         from models import storage
