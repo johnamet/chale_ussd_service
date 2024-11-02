@@ -30,7 +30,7 @@ class QRcodePDF(FPDF):
 
     def _insert_qr_image(self):
         """Generates and inserts a QR code based on user phone data."""
-        token = jwt.encode(self.data, os.get_env('JWT_SECRET'), algorithm='HS256')
+        token = jwt.encode(self.data, os.getenv('JWT_SECRET'), algorithm='HS256')
 
         qr_engine = QrCodeEngine(token)
         qr_path = qr_engine.generate_code()  # Get path to QR code image file
