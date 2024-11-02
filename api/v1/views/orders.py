@@ -40,7 +40,7 @@ import logging
 import os
 from datetime import datetime
 
-from flask import abort, jsonify, request
+from flask import abort, jsonify, request, render_template
 
 from api.v1.views import app_views
 from models import cache
@@ -301,20 +301,26 @@ def create_instant_order():
 
         user = User.get(phone)
         if user:
-                social = Social(platform="instagram", user_id=user.id,
-                                handle=instagram)
-                social.save()
+                social = Social.dynamic_query({'user_id':user.id})
+
+                if not social:
+                    social = Social(platform="instagram", user_id=user.id,
+                                    handle=instagram)
+                    social.save()
         if not user:
+
             user = User(id=phone, phone=phone,
                         password=phone,
                         country_id=1, name=user_name,
                         email=email if email else str(phone))
 
             if instagram:
-                social = Social(platform="instagram", user_id=user.id,
-                                handle=instagram)
+                social = Social.dynamic_query({'user_id':user.id})
+                if not social:
+                    social = Social(platform="instagram", user_id=user.id,
+                                    handle=instagram)
 
-                social.save()
+                    social.save()
             user.save()
 
         event = Event.get_by_name(event_name) or Tour.get_by_name(event_name)
@@ -362,55 +368,18 @@ def create_instant_order():
         pos_code_url = f'{os.getenv("SERVER_ADDRESS")}pos-qrcode/{file_name}'
 
         if email:
-            body = f"""
-                <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Ticket for {event_name}</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-        <h2 style="color: #ff6600; text-align: center;">Hello, {user_name.split(" ")[0]}</h2>
-        
-        <p style="font-size: 1.1em;">
-            Chalé, are you ready? Because we’ve got you all set for <strong>{event_name}!</strong> 🎶🔥
-        </p>
-        
-        <p style="font-size: 1em;">
-            Check this – your ticket is in hand, and you’re officially on the list. Here’s what you need to enter like a boss:
-        </p>
 
-        <ul style="list-style-type: none; padding: 0;">
-            <li style="margin-bottom: 10px;">
-                <strong>QR Code:</strong> <a href="{mail_code_url}" style="color: #ff6600;">{mail_code_url}</a>
-            </li>
-            <li style="margin-bottom: 10px;">
-                <strong>Unlock Code for PDF Ticket:</strong> <em>{password}</em>
-            </li>
-        </ul>
-        
-        <p style="font-size: 1em;">
-            Just show the QR code at the gate, and you're in! If you have any trouble, don't stress – we're just a message away.
-        </p>
-        
-        <p style="font-size: 1.1em;">
-            Get ready, stay safe, and come with your vibe! Let’s make this one memorable.
-        </p>
-        
-        <p style="font-size: 1em; text-align: center;">
-            See you there!<br>
-            <strong>The Chalé Team</strong>
-        </p>
-    </div>
-</body>
-</html>
-                """
+           body = render_template(
+                "ticket_email_template.html",
+                event_name=event_name,
+                password=password,
+                mail_code_url=mail_code_url,
+                user_name=user_name.split(" ")[0]
+            )
+           send_email(subject=f"You Dey Inside! {event_name} is Waiting for You 🎉", recipients=[email],
+                      body=body,
+                      html_body=body)
 
-            send_email(subject=f"Eii Chalé! You're All Set for {event_name} 🎉", recipients=[email],
-                       body=body,
-                       html_body=body)
 
         return jsonify({
             'success': True,
