@@ -193,4 +193,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('CHALE_SERVER_PORT', 7000))
 
     # Start the Flask application
-    app.run(host=host, port=port, debug=True)
+    app.run(host=host, port=port)
