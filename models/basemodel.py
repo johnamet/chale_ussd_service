@@ -57,6 +57,14 @@ class BaseModel(Base):
             # Handle exceptions (log them, re-raise, etc.)
             print(f"Error saving model: {e}")
 
+    @classmethod
+    def bulk_insert(cls, data_list):
+        from models import storage
+        try:
+            storage.bulk_insert(cls, data_list)
+        except Exception as e:
+            print("Error Inserting bulk: {e}")
+
     def update(self):
         from models import storage
         try:

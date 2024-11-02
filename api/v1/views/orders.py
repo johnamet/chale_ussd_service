@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pandas as pd
 
 """
 Order Management Module
@@ -340,7 +341,8 @@ def create_instant_order():
             qr_code=file_name,
             currency='GHS',
             payment_status='COMPLETED',
-            reference=reference
+            reference=reference,
+            other_details=event_id
         )
         order.save()
 
@@ -394,3 +396,175 @@ def create_instant_order():
             "message": "Error creating an order",
             "error": "Database connection error"
         }), 200
+    
+@app_views.route('/orders/<event_id>', methods=['GET'], strict_slashes=False)
+@protected()
+def get_event_orders(event_id):
+    try:
+        event = Event.get(event_id)
+
+        if not event:
+            abort(400, f"Event with id: {event_id} not found")
+        
+        event_orders = Order.dynamic_query({'other_details':int(event_id)})
+
+        if event_orders:
+            return jsonify({
+                'success': True,
+                'data': event_orders,
+                'message': f'Orders for {event.name} retrieved successfully'
+            }), 200
+        else:
+            orders = Order.all()
+            event_orders = [order for order in orders if Ticket.get(order['ticket_id']).event_id == int(event_id)]
+            return jsonify({
+                'success': True,
+                'data': event_orders,
+                'message': f'Orders for {event.name} retrieved successfully'
+            }), 200
+    except Exception as e:
+        print(e)
+        abort(500, 'Error retrieving orders for event')
+
+
+
+@app_views.route('/bulk-orders/<event_id>', methods=['POST'], strict_slashes=False)
+def create_bulk_order(event_id):
+    """
+    Create bulk orders
+    """
+
+    try:
+        if 'file' not in request.files:
+            abort(400, description='No file provided in the request')
+        
+
+        
+        event = Event.get(event_id)
+
+        excel_file = request.files['file']
+
+        df = pd.read_excel(excel_file)
+
+        required_fields = {'First Name', 'Last Name', 'Tel', 'Email', 'Ticket Type', 'Assigned Table'}
+
+        if not required_fields.issubset(df.columns):
+            abort(400, description=f'Missing required columns. Expected columns: {required_fields}')
+
+        success_count = 0
+
+        failure_details = []
+
+        for _, row in df.iterrows():
+            email = row['Email']
+            name = f"{row['First Name']} {row['Last Name']}"
+            phone = row['Tel']
+            ticket_type = row['Ticket Type']
+            assigned_table = row['Assigned Table']
+            quantity = row['Quantity'] or  1
+            price = row['Price'] or 0
+
+            users = []
+            tickets = []
+            orders = []
+
+            code_data = []
+
+            try:
+                user = User.dynamic_query({'name': name,'email': email})
+
+                if not user:
+                    user = User(id=phone, phone=phone,
+                        password=phone,
+                        country_id=1, name=name,
+                        email=email if email else str(phone))
+                    users.append(user)
+
+                else:
+                    user = user[0]
+
+
+                ticket = Ticket.dynamic_query({'title': ticket_type, "event_id": event_id})[0]
+                
+
+
+                file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
+
+                order = Order(user_id=user.id, ticket_id=ticket['id'],
+                              quantity=quantity,
+                              ticket_type=ticket_type,
+                              price=price,
+                              qr_code=file_name,
+                              currency='GHS',
+                              payment_status='COMPLETED',
+                              reference=f'REF{generate_token()}')
+                orders.append(order)
+
+                code_data.append({
+                    'ticket_id': ticket['id'],
+                    'user_id': user.id,
+                    'event_id': event.id,
+                    'assigned_table': assigned_table,
+                    'valid': util.format_date_time(event.end_date, event.end_time)
+                })
+                success_count =+ 1
+            
+            except Exception as e:
+                logger.error(f"Failed to process row {row}: {e}")
+                failure_details.append({
+                    'row': row.to_dict(),
+                    'error': str(e)
+                })
+
+        return jsonify({
+            'success': True,
+            'message': 'Bulk order processing completed',
+            'processed': success_count,
+            'processed_percentage': (success_count * 100)/ len(df),
+            'failures': failure_details,
+            'data': code_data
+        }), 200
+    except Exception as e:
+        logger.error(f"Failed to process bulk order file: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to process bulk order file',
+            'error': str(e)
+        }), 500
+    
+
+@app_views.route('/user/<id>', methods=['GET'], strict_slashes=False)
+def get_user(id):
+    try:
+        user = User.get(id)
+
+        if user:
+            return jsonify({
+                'success': True,
+                'data': user.to_dict(),
+                'message': 'User retrieved Successfully',
+            })
+        else:
+            abort(404, f'User with ID: {id} not found')
+    except Exception as e:
+        logger.error(e)
+        abort(500, f'Internal Error: {e}')
+
+
+
+
+
+
+
+                
+
+
+
+                
+
+                    
+                
+
+
+
+

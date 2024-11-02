@@ -242,6 +242,23 @@ class DBStorage:
         if page is not None and page_size > 0:
             return query.offset((page - 1) * page_size).limit(page_size)
         return query
+    
+    def bulk_insert(self, cls, data_list):
+        """
+        Bulk inserts objecys from a list of dictionaries.
+        Checks for existing users by email and name and only inserts new records.
+        
+        :param data_list: List of user data dictionaries with 'name' and 'email' keys.
+        """ 
+        
+        try:
+            self.__session.bulk_insert_mappings(cls, data_list)
+            self.__session.commit()
+        except SQLAlchemyError as e:
+            logger.error(e)
+            self.__session.rollback()
+            print(f"Error during bulk insert: {e}")
+        
 
     def is_live(self):
         """

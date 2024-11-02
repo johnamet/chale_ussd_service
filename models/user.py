@@ -47,9 +47,11 @@ class User(Base):
         Converts the model instance into a dictionary format.
         """
         obj = {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        del obj['password']
+        del obj['otp']
+        del obj['remember_token']
         obj["created_at"] = self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         obj["updated_at"] = self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
-        obj["deleted_at"] = self.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if self.deleted_at else None
         if "start_date" in self.__dict__:
             obj["start_date"] = self.start_date.strftime('%Y-%m-%d') if self.start_date else None
             obj["start_time"] = self.start_date.strftime('%H:%M:%S') if self.start_time else None
