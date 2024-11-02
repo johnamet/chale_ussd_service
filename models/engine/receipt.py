@@ -44,9 +44,7 @@ class BulkQRcodePDF(FPDF):
             self.add_page()
             self._insert_qr_image(data)  # Insert QR code for each data entry
             # Optionally, you can add more content for each page
-            self.set_font("Arial", size=self.font_size_main)
-            self.cell(0, 10, f"Data: {data}", ln=True)  # Example of adding data as text
-
+   
         pdf_bytes = self.output(dest="S").encode("latin1")
         return io.BytesIO(pdf_bytes)
 

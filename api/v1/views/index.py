@@ -5,7 +5,7 @@ from flask import abort, jsonify, make_response, request, send_file
 
 from api.v1.views import app_views
 from models import cache
-from models.engine.receipt import Receipt, POSReceipt, QRcodePDF
+from models.engine.receipt import BulkQRcodePDF, Receipt, POSReceipt, QRcodePDF
 
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
@@ -231,7 +231,9 @@ async def get_bulk_code():
         # Generate the receipt using the Receipt class
         data = request.get_json()['qr_codes']
 
-        receipt = QRcodePDF(data)
+        print(data)
+
+        receipt = BulkQRcodePDF(data)
         receipt_stream = await receipt.create_receipt()
 
         # Return the PDF as a downloadable file
