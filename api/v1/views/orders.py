@@ -191,10 +191,14 @@ def create_order():
 
         event = Event.get_by_name(event_name) or Tour.get_by_name(event_name)
         event_id = event.id if event else None
-        ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1,
+        ticket = Ticket.dynamic_query({'title': ticket_type, 'event_id': event_id, 'price':price})[0]
+
+        if not ticket:
+            ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1,
                         event_id=event_id)
 
-        ticket.save()
+            ticket.save()
+
         file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
 
         order = Order(
@@ -326,10 +330,13 @@ def create_instant_order():
 
         event = Event.get_by_name(event_name) or Tour.get_by_name(event_name)
         event_id = event.id if event else None
-        ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1,
+        ticket = Ticket.dynamic_query({'title': ticket_type, 'event_id': event_id})[0]
+
+        if not ticket:
+            ticket = Ticket(title=ticket_type, price=price, entries_allowed_per_ticket=1, quantity=1,
                         event_id=event_id)
 
-        ticket.save()
+            ticket.save()
         file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
 
         order = Order(
