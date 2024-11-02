@@ -1,7 +1,7 @@
 import logging
 import os
 
-from flask import abort, jsonify, make_response, send_file
+from flask import abort, jsonify, make_response, request, send_file
 
 from api.v1.views import app_views
 from models import cache
@@ -189,13 +189,55 @@ async def get_pdf_code(filename):
     try:
         # Generate the receipt using the Receipt class
         data = cache.hget_all(filename)
-        receipt = QRcodePDF(data)
+        receipt = QRcodePDF(filename)
         receipt_stream = await receipt.create_receipt()
 
         # Return the PDF as a downloadable file
         return send_file(
             receipt_stream,
             download_name=f"{filename}_receipt.pdf",
+            mimetype='application/pdf'
+        )
+
+
+    except KeyError as e:
+        # Handle case where ticket data doesn't exist in the cache
+        abort(404, description=f"The requested ticket data was not found. {e}")
+    except Exception as e:
+        # General exception handling
+        abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
+
+
+@app_views.route('/generate_qr_codes_pdf/', methods=['POST'])
+async def get_bulk_code():
+    """
+    Retrieve and serve a QR code receipt PDF asynchronously.
+
+    This endpoint generates and serves a QR code receipt PDF file directly from memory.
+    If the filename corresponds to a valid ticket in the cache, it will generate a PDF
+    receipt for download or display. 
+
+    Parameters:
+        filename (str): Unique identifier for the ticket data, used to generate the receipt.
+
+    Returns:
+        200 OK: Returns the QR code receipt as a downloadable PDF file.
+        404 Not Found: The requested ticket data does not exist.
+
+    Example Usage:
+        GET /qr_code/sample_qr_code.pdf
+    """
+    try:
+        # Generate the receipt using the Receipt class
+        data = request.get_json()['qr_codes']
+
+        receipt = QRcodePDF(data)
+        receipt_stream = await receipt.create_receipt()
+
+        # Return the PDF as a downloadable file
+        return send_file(
+            receipt_stream,
+            download_name="bulk_receipt.pdf",
             mimetype='application/pdf'
         )
 

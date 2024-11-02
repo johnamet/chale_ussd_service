@@ -13,6 +13,49 @@ from models.engine.qr_code_engine import QrCodeEngine
 load_dotenv()
 
 
+from fpdf import FPDF
+import io
+
+class BulkQRcodePDF(FPDF):
+    def __init__(self, data_list):
+        # Set up page size and element sizes for thermal paper
+        pos_width_mm = 58  # Typical width for POS receipts in mm
+        pos_height_mm = 100  # Adjust as necessary for desired height
+        self.qr_size = 30  # Smaller QR code for POS receipts
+        self.font_size_main = 6  # Smaller font for POS
+        self.margin_x = 5  # Reduced margins
+        self.margin_y = 5
+
+        # Initialize FPDF with custom POS paper dimensions
+        super().__init__(format=(pos_width_mm, pos_height_mm))
+
+        self.data_list = data_list  # Store the list of data
+
+    def _insert_qr_image(self, data):
+        """Generates and inserts a QR code based on user data."""
+        qr_engine = QrCodeEngine(str(data))
+        qr_path = qr_engine.generate_code()  # Get path to QR code image file
+        image_width, image_height = 25, 25
+        x_position = (self.w + 3 - self.qr_size) / 2
+        self.image(qr_path, x=x_position, y=15, w=image_width, h=image_height)
+
+    async def generate_receipt(self):
+        """Generates the receipt PDF content asynchronously."""
+        for data in self.data_list:
+            self.add_page()
+            self._insert_qr_image(data)  # Insert QR code for each data entry
+            # Optionally, you can add more content for each page
+            self.set_font("Arial", size=self.font_size_main)
+            self.cell(0, 10, f"Data: {data}", ln=True)  # Example of adding data as text
+
+        pdf_bytes = self.output(dest="S").encode("latin1")
+        return io.BytesIO(pdf_bytes)
+
+    async def create_receipt(self):
+        """Generates the POS receipt and returns it as an in-memory PDF file."""
+        return await self.generate_receipt()
+
+
 class QRcodePDF(FPDF):
     def __init__(self, data):
         # Set up page size and element sizes for thermal paper
@@ -30,13 +73,13 @@ class QRcodePDF(FPDF):
 
     def _insert_qr_image(self):
         """Generates and inserts a QR code based on user phone data."""
-        token = jwt.encode(self.data, os.getenv('JWT_SECRET'), algorithm='HS256')
+        # token = jwt.encode(payload=self.data, key=os.getenv('JWT_SECRET'), algorithm="HS256")
 
-        qr_engine = QrCodeEngine(token)
+        qr_engine = QrCodeEngine(str(self.data))
         qr_path = qr_engine.generate_code()  # Get path to QR code image file
         image_width, image_height = 25, 25
-        x_position = (210 - image_width) / 2
-        self.image(qr_path, x=x_position, y=35, w=image_width, h=image_height)
+        x_position = (self.w+3 - self.qr_size) / 2
+        self.image(qr_path, x=x_position, y=15, w=image_width, h=image_height)
 
     async def generate_receipt(self):
         """Generates the receipt PDF content asynchronously."""
@@ -50,6 +93,7 @@ class QRcodePDF(FPDF):
         return await self.generate_receipt()
 
         
+
 
 
 

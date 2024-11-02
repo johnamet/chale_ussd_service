@@ -490,13 +490,7 @@ def create_bulk_order(event_id):
                 order.save()
                 # orders.append(order)
 
-                code_data.append({
-                    'ticket_id': ticket['id'],
-                    'user_id': user.id,
-                    'event_id': event.id,
-                    'assigned_table': assigned_table,
-                    'valid': util.format_date_time(event.end_date, event.end_time)
-                })
+                
 
                 password = generate_token()
                 data = {
@@ -505,10 +499,12 @@ def create_bulk_order(event_id):
                     'event_name': event.name,
                     'start_date': util.format_date_time(event.start_date, event.start_time) if event else None,
                     'end_date': util.format_date_time(event.end_date, event.end_time) if event else None,
-                    'description': event.description if event else 'Contact customer service for details.',
                     'password': password, 'ticket_id': ticket['id'],
-                    'ticket_type': ticket_type
+                    'ticket_type': ticket_type,
+                    'file_name': file_name
                 }
+
+                code_data.append(data)
 
                 cache_result = cache.hset(key=file_name, data=data)
                 if not cache_result:
