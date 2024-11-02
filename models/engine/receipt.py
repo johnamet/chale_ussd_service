@@ -15,7 +15,7 @@ load_dotenv()
 class Receipt(FPDF, HTMLMixin):
     """Class to generate and encrypt PDF receipts asynchronously for event tickets."""
 
-    def __init__(self, data, paper_size):
+    def __init__(self, data, paper_size="A4"):
         super().__init__()
         self.data = data
         self.logo_stream = None

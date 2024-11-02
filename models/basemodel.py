@@ -32,14 +32,15 @@ class BaseModel(Base):
         """
         Converts the model instance into a dictionary format.
         """
-        obj = {column.platform: getattr(self, column.platform) for column in self.__table__.columns}
+        obj = {column.name: getattr(self, column.name) for column in self.__table__.columns}
         obj["created_at"] = self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
         obj["updated_at"] = self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
         obj["deleted_at"] = self.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if self.deleted_at else None
-        obj["start_date"] = self.start_date.strftime('%Y-%m-%d') if self.start_date else None
-        obj["start_time"] = self.start_date.strftime('%H:%M:%S') if self.start_time else None
-        obj["end_date"] = self.end_date.strftime('%Y-%m-%d') if self.end_date else None
-        obj["end_time"] = self.end_time.strftime('%H:%M:%S') if self.end_time else None
+        if "start_date" in self.__dict__:
+            obj["start_date"] = self.start_date.strftime('%Y-%m-%d') if self.start_date else None
+            obj["start_time"] = self.start_date.strftime('%H:%M:%S') if self.start_time else None
+            obj["end_date"] = self.end_date.strftime('%Y-%m-%d') if self.end_date else None
+            obj["end_time"] = self.end_time.strftime('%H:%M:%S') if self.end_time else None
 
         return obj
 
