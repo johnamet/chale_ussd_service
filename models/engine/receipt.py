@@ -6,10 +6,51 @@ import pikepdf
 from PIL import Image
 from dotenv import load_dotenv
 from fpdf import FPDF, HTMLMixin
+import jwt
 
 from models.engine.qr_code_engine import QrCodeEngine
 
 load_dotenv()
+
+
+class QRcodePDF(FPDF):
+    def __init__(self, data):
+        # Set up page size and element sizes for thermal paper
+        pos_width_mm = 58  # Typical width for POS receipts in mm
+        pos_height_mm = 100  # Adjust as necessary for desired height
+        self.qr_size = 30  # Smaller QR code for POS receipts
+        self.font_size_main = 6  # Smaller font for POS
+        self.margin_x = 5  # Reduced margins
+        self.margin_y = 5
+
+        # Initialize FPDF with custom POS paper dimensions
+        super().__init__(format=(pos_width_mm, pos_height_mm))
+
+        self.data = data
+
+    def _insert_qr_image(self):
+        """Generates and inserts a QR code based on user phone data."""
+        token = jwt.encode(self.data, os.get_env('JWT_SECRET'), algorithm='HS256')
+
+        qr_engine = QrCodeEngine(token)
+        qr_path = qr_engine.generate_code()  # Get path to QR code image file
+        image_width, image_height = 25, 25
+        x_position = (210 - image_width) / 2
+        self.image(qr_path, x=x_position, y=35, w=image_width, h=image_height)
+
+    async def generate_receipt(self):
+        """Generates the receipt PDF content asynchronously."""
+        self.add_page()
+        self._insert_qr_image()
+        pdf_bytes = self.output(dest="S").encode("latin1")
+        return io.BytesIO(pdf_bytes)
+    
+    async def create_receipt(self):
+        """Generates the POS receipt and returns it as an in-memory PDF file."""
+        return await self.generate_receipt()
+
+        
+
 
 
 class Receipt(FPDF, HTMLMixin):
