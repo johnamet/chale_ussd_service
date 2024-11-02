@@ -6,7 +6,6 @@ import pikepdf
 from PIL import Image
 from dotenv import load_dotenv
 from fpdf import FPDF, HTMLMixin
-import jwt
 
 from models.engine.qr_code_engine import QrCodeEngine
 
