@@ -440,27 +440,23 @@ def create_bulk_order(event_id):
     """
     Create bulk orders
     """
-
     try:
         if 'file' not in request.files:
             abort(400, description='No file provided in the request')
         
-
-        
         event = Event.get(event_id)
-
         excel_file = request.files['file']
-
         df = pd.read_excel(excel_file)
-
         required_fields = {'First Name', 'Last Name', 'Tel', 'Email', 'Ticket Type', 'Assigned Table'}
 
         if not required_fields.issubset(df.columns):
             abort(400, description=f'Missing required columns. Expected columns: {required_fields}')
 
         success_count = 0
-
         failure_details = []
+        users = []
+        orders = []
+        code_data = []
 
         for _, row in df.iterrows():
             email = row['Email']
@@ -468,44 +464,31 @@ def create_bulk_order(event_id):
             phone = row['Tel']
             ticket_type = row['Ticket Type']
             assigned_table = row['Assigned Table']
-            quantity = row['Quantity'] or  1
-            price = row['Price'] or 0
-
-            users = []
-            tickets = []
-            orders = []
-
-            code_data = []
+            quantity = row.get('Quantity', 1)
+            price = row.get('Price', 0)
 
             try:
-                user = User.dynamic_query({'name': name,'email': email})
-
+                user = User.dynamic_query({'name': name, 'email': email})
                 if not user:
-                    user = User(id=phone, phone=phone,
-                        password=phone,
-                        country_id=1, name=name,
-                        email=email if email else str(phone))
+                    user = User(id=phone, phone=phone, password=phone, country_id=1,
+                                name=name, email=email if email else str(phone))
+                    user.save()
                     users.append(user)
-
                 else:
-                    user = user[0]
-
+                    user = User(**user[0], password="")
 
                 ticket = Ticket.dynamic_query({'title': ticket_type, "event_id": event_id})[0]
-                
-
-
                 file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
 
-                order = Order(user_id=user.id, ticket_id=ticket['id'],
-                              quantity=quantity,
-                              ticket_type=ticket_type,
-                              price=price,
-                              qr_code=file_name,
-                              currency='GHS',
-                              payment_status='COMPLETED',
-                              reference=f'REF{generate_token()}')
-                orders.append(order)
+                order = Order(
+                    user_id=user.id, ticket_id=ticket['id'],
+                    quantity=quantity, ticket_type=ticket_type,
+                    price=price, qr_code=file_name,
+                    currency='GHS', payment_status='COMPLETED',
+                    reference=f'REF{generate_token()}'
+                )
+                order.save()
+                # orders.append(order)
 
                 code_data.append({
                     'ticket_id': ticket['id'],
@@ -514,8 +497,35 @@ def create_bulk_order(event_id):
                     'assigned_table': assigned_table,
                     'valid': util.format_date_time(event.end_date, event.end_time)
                 })
-                success_count =+ 1
-            
+
+                password = generate_token()
+                data = {
+                    'phone': phone, 'name': name,
+                    'event_coordinates': event.coordinates if event else 'www.app.chaleapp.org',
+                    'event_name': event.name,
+                    'start_date': util.format_date_time(event.start_date, event.start_time) if event else None,
+                    'end_date': util.format_date_time(event.end_date, event.end_time) if event else None,
+                    'description': event.description if event else 'Contact customer service for details.',
+                    'password': password, 'ticket_id': ticket['id'],
+                    'ticket_type': ticket_type
+                }
+
+                cache_result = cache.hset(key=file_name, data=data)
+                if not cache_result:
+                    abort(500, 'Error writing to Redis')
+
+                success_count += 1
+                mail_code_url = f'{os.getenv("SERVER_ADDRESS")}qr_code/{file_name}'
+                body = render_template(
+                    "ticket_email_template.html",
+                    event_name=event.name,
+                    password=password,
+                    mail_code_url=mail_code_url,
+                    user_name=name.split(" ")[0]
+                )
+                send_email(subject=f"You Dey Inside! {event.name} is Waiting for You 🎉", recipients=[email],
+                           body=body, html_body=body)
+
             except Exception as e:
                 logger.error(f"Failed to process row {row}: {e}")
                 failure_details.append({
@@ -523,11 +533,19 @@ def create_bulk_order(event_id):
                     'error': str(e)
                 })
 
+        # try:
+        #     # print(users)
+        #     # User.bulk_insert(users)
+        #     # Order.bulk_insert(orders)
+        # except Exception as e:
+        #     logger.error(f"Bulk insert error: {e}")
+        #     abort(500, description="Bulk insert error occurred, transaction rolled back.")
+
         return jsonify({
             'success': True,
             'message': 'Bulk order processing completed',
             'processed': success_count,
-            'processed_percentage': (success_count * 100)/ len(df),
+            'processed_percentage': (success_count * 100) / len(df),
             'failures': failure_details,
             'data': code_data
         }), 200
@@ -538,7 +556,6 @@ def create_bulk_order(event_id):
             'message': 'Failed to process bulk order file',
             'error': str(e)
         }), 500
-    
 
 @app_views.route('/user/<id>', methods=['GET'], strict_slashes=False)
 def get_user(id):

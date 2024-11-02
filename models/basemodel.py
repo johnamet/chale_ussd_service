@@ -63,7 +63,7 @@ class BaseModel(Base):
         try:
             storage.bulk_insert(cls, data_list)
         except Exception as e:
-            print("Error Inserting bulk: {e}")
+            print(f"Error Inserting bulk: {e}")
 
     def update(self):
         from models import storage

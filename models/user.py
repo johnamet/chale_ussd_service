@@ -32,6 +32,9 @@ class User(Base):
     def __init__(self, name, phone, email, country_id, password, google_id=None, otp=None, email_verified_at=None,
                  remember_token=None, **kwargs):
         super().__init__(**kwargs)
+        if kwargs:
+            for key,value in kwargs.items():
+                setattr(self, key, value)
         self.name = name
         self.phone = phone
         self.email = email
@@ -111,3 +114,11 @@ class User(Base):
         from models import storage
         return storage.dynamic_query(cls, filters=filters, page=page,
                                      page_size=page_size)
+    
+    @classmethod
+    def bulk_insert(cls, data_list):
+        from models import storage
+        try:
+            storage.bulk_insert(cls=cls, data_list=data_list)
+        except Exception as e:
+            print(f"Error Inserting bulk: {e}")
