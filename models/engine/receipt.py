@@ -15,42 +15,83 @@ load_dotenv()
 from fpdf import FPDF
 import io
 
+import os
+from fpdf import FPDF
+import io
+import tempfile
+from PyPDF2 import PdfMerger
+
 class BulkQRcodePDF(FPDF):
     def __init__(self, data_list):
-        # Set up page size and element sizes for thermal paper
-        pos_width_mm = 58  # Typical width for POS receipts in mm
-        pos_height_mm = 100  # Adjust as necessary for desired height
-        self.qr_size = 30  # Smaller QR code for POS receipts
-        self.font_size_main = 6  # Smaller font for POS
-        self.margin_x = 5  # Reduced margins
+        pos_width_mm = 58
+        pos_height_mm = 100
+        self.qr_size = 30
+        self.font_size_main = 6
+        self.margin_x = 5
         self.margin_y = 5
-
-        # Initialize FPDF with custom POS paper dimensions
         super().__init__(format=(pos_width_mm, pos_height_mm))
+        
+        # Pre-generate QR codes for each data entry
+        self.qr_images = [self._generate_qr_image(data) for data in data_list]
+        self.data_list = data_list
 
-        self.data_list = data_list  # Store the list of data
-
-    def _insert_qr_image(self, data):
-        """Generates and inserts a QR code based on user data."""
+    def _generate_qr_image(self, data):
+        """Generates and returns a QR code image path for given data."""
         qr_engine = QrCodeEngine(str(data))
-        qr_path = qr_engine.generate_code()  # Get path to QR code image file
+        qr_path = qr_engine.generate_code()  # This generates and saves the QR code image file
+        return qr_path
+
+    def _insert_qr_image(self, qr_path):
+        """Inserts a pre-generated QR code into the PDF."""
         image_width, image_height = 25, 25
         x_position = (self.w + 3 - self.qr_size) / 2
         self.image(qr_path, x=x_position, y=15, w=image_width, h=image_height)
 
-    async def generate_receipt(self):
-        """Generates the receipt PDF content asynchronously."""
-        for data in self.data_list:
+    async def generate_receipt_batch(self, start_idx, end_idx):
+        """Generate a batch of receipts from start_idx to end_idx."""
+        for idx in range(start_idx, end_idx):
             self.add_page()
-            self._insert_qr_image(data)  # Insert QR code for each data entry
-            # Optionally, you can add more content for each page
-   
+            self._insert_qr_image(self.qr_images[idx])  # Insert pre-generated QR code image
+            # Optionally add more page-specific content
+
         pdf_bytes = self.output(dest="S").encode("latin1")
         return io.BytesIO(pdf_bytes)
 
-    async def create_receipt(self):
-        """Generates the POS receipt and returns it as an in-memory PDF file."""
-        return await self.generate_receipt()
+    async def create_receipt(self, batch_size=50):
+        """Creates multiple PDF batches, then combines them."""
+        temp_files = []
+        
+        # Generate PDF batches
+        for i in range(0, len(self.data_list), batch_size):
+            end_idx = min(i + batch_size, len(self.data_list))
+            batch_pdf = await self.generate_receipt_batch(i, end_idx)
+
+            # Save batch to a temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+            temp_file.write(batch_pdf.getbuffer())
+            temp_file.close()
+            temp_files.append(temp_file.name)
+
+        # Combine all temporary batch files into a single final PDF
+        merged_pdf_stream = self._merge_pdfs(temp_files)
+
+        # Cleanup temporary files
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+        return merged_pdf_stream
+
+    def _merge_pdfs(self, file_paths):
+        """Merge a list of PDF files into one PDF in memory."""
+        merger = PdfMerger()
+        for pdf_file in file_paths:
+            merger.append(pdf_file)
+
+        final_pdf_stream = io.BytesIO()
+        merger.write(final_pdf_stream)
+        merger.close()
+        final_pdf_stream.seek(0)
+        return final_pdf_stream
 
 
 class QRcodePDF(FPDF):

@@ -474,8 +474,7 @@ async def create_bulk_order(event_id):
                                 name=name, email=email if email else str(phone))
                     # user.save()
                     users.append(user.to_dict())
-                else:
-                    user = User(**user[0], password=str(phone))
+        
 
                 ticket = Ticket.dynamic_query({'title': ticket_type, "event_id": event_id})[0]
                 file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
