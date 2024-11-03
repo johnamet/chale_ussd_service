@@ -1,7 +1,9 @@
+import io
 import logging
 import os
 
 from flask import abort, jsonify, make_response, request, send_file
+from redis import Redis
 
 from api.v1.views import app_views
 
@@ -10,6 +12,7 @@ from models.engine.receipt import BulkQRcodePDF, Receipt, POSReceipt, QRcodePDF
 
 # Set up a logger for this module
 logger = logging.getLogger(__name__)
+
 
 
 @app_views.route('/', methods=['GET'], strict_slashes=False)
@@ -208,6 +211,14 @@ async def get_pdf_code(filename):
         # General exception handling
         abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
 
+import asyncio 
+
+def generate_bulk(data):
+    engine = BulkQRcodePDF(data)
+    stream = asyncio.run(engine.create_receipt())
+    return stream
+from rq import Queue
+q = Queue(connection=Redis())
 @app_views.route('/bulk-qrcodes', methods=['POST'], strict_slashes=False)
 async def get_bulk_code():
     """
@@ -228,13 +239,12 @@ async def get_bulk_code():
         GET /qr_code/sample_qr_code.pdf
     """
     try:
-        from api.v1.tasks import generate_bulk_pdf
         # Generate the receipt using the Receipt class
         data = request.get_json()['qr_codes']
 
-        task = generate_bulk_pdf.delay(data)
+        task = q.enqueue(generate_bulk, data)
 
-        return jsonify({'success': True, 'task_id': task.id}), 202
+        return jsonify({'success': True, 'task_id': task.get_id()}), 202
 
 
     except KeyError as e:
@@ -247,18 +257,17 @@ async def get_bulk_code():
 
 @app_views.route('/task_status/<task_id>', methods=['GET'])
 def get_task_status(task_id):
-    task = generate_bulk_pdf.AsyncResult(task_id)
-    if task.state == 'PENDING':
-        return jsonify({"status": "pending"})
-    elif task.state == 'SUCCESS':
+    task = q.fetch_job(task_id)
+
+    if task.is_finished:
         pdf = task.result  # Result is the PDF stream
         return send_file(
-            io.BytesIO(pdf),
+            pdf,
             download_name="bulk_receipt.pdf",
             mimetype='application/pdf'
         )
     else:
-        return jsonify({"status": task.state})
+        return jsonify({"status": task.is_started})
 
 @app_views.route('/docs/', methods=['GET'], strict_slashes=False)
 def swagger_yaml():
