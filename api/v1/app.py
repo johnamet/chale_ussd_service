@@ -9,7 +9,7 @@ with integrated Swagger documentation using Flasgger.
 import logging
 import os
 from typing import Any
-
+from celery import Celery
 from flask import Flask, jsonify, make_response
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
@@ -27,10 +27,27 @@ file_handler = logging.FileHandler('event_service.log')
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
+def make_celery(app):
+    celery = Celery(
+            app.import_name,backend=app.config['result_backend'],
+            broker=app.config['broker_url']
+            )
+    celery.conf.update(app.config)
+    return celery
+
+
+            
 # Create the Flask application
 app = Flask(__name__)
 app.config['QR_CODE_DIR'] = os.getenv('QR_CODE_DIR', './qrcodes')
 
+app.config.update(
+        broker_url='redis://localhost:6379/0',
+        result_backend='redis://localhost:6379/0',
+        broker_connection_retry_on_startup=True
+        )
+
+celery = make_celery(app)
 app.config['MAIL_SERVER'] = 'live.smtp.mailtrap.io'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USERNAME'] = 'api'

@@ -4,6 +4,7 @@ import os
 from flask import abort, jsonify, make_response, request, send_file
 
 from api.v1.views import app_views
+
 from models import cache
 from models.engine.receipt import BulkQRcodePDF, Receipt, POSReceipt, QRcodePDF
 
@@ -207,7 +208,6 @@ async def get_pdf_code(filename):
         # General exception handling
         abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
 
-
 @app_views.route('/bulk-qrcodes', methods=['POST'], strict_slashes=False)
 async def get_bulk_code():
     """
@@ -228,20 +228,13 @@ async def get_bulk_code():
         GET /qr_code/sample_qr_code.pdf
     """
     try:
+        from api.v1.tasks import generate_bulk_pdf
         # Generate the receipt using the Receipt class
         data = request.get_json()['qr_codes']
 
-        print(data)
+        task = generate_bulk_pdf.delay(data)
 
-        receipt = BulkQRcodePDF(data)
-        receipt_stream = await receipt.create_receipt()
-
-        # Return the PDF as a downloadable file
-        return send_file(
-            receipt_stream,
-            download_name="bulk_receipt.pdf",
-            mimetype='application/pdf'
-        )
+        return jsonify({'success': True, 'task_id': task.id}), 202
 
 
     except KeyError as e:
@@ -251,6 +244,21 @@ async def get_bulk_code():
         # General exception handling
         abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
 
+
+@app_views.route('/task_status/<task_id>', methods=['GET'])
+def get_task_status(task_id):
+    task = generate_bulk_pdf.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        return jsonify({"status": "pending"})
+    elif task.state == 'SUCCESS':
+        pdf = task.result  # Result is the PDF stream
+        return send_file(
+            io.BytesIO(pdf),
+            download_name="bulk_receipt.pdf",
+            mimetype='application/pdf'
+        )
+    else:
+        return jsonify({"status": task.state})
 
 @app_views.route('/docs/', methods=['GET'], strict_slashes=False)
 def swagger_yaml():
