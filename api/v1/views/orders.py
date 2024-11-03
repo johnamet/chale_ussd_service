@@ -436,7 +436,7 @@ def get_event_orders(event_id):
 
 
 @app_views.route('/bulk-orders/<event_id>', methods=['POST'], strict_slashes=False)
-async def create_bulk_order(event_id):
+def create_bulk_order(event_id):
     """
     Create bulk orders
     """
@@ -458,6 +458,16 @@ async def create_bulk_order(event_id):
         orders = []
         code_data = []
 
+        ticket = Ticket.dynamic_query({'title': 'Regular', "event_id": event_id})
+
+        if ticket:
+            ticket = Ticket(**ticket[0])
+
+        else:
+            ticket = Ticket(title='Regular', event_id=event.id, quantity=len(df), price=0, description='Bulk Ticket', entries_allowed_per_ticket=1)
+
+            ticket.save()
+
         for _, row in df.iterrows():
             email = row['Email']
             name = f"{row['First Name']} {row['Last Name']}"
@@ -474,13 +484,14 @@ async def create_bulk_order(event_id):
                                 name=name, email=email if email else str(phone))
                     # user.save()
                     users.append(user.to_dict())
-        
+                else:
+                   user = User(**user[0])
 
-                ticket = Ticket.dynamic_query({'title': ticket_type, "event_id": event_id})[0]
+
                 file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
 
                 order = Order(
-                    user_id=user.id, ticket_id=ticket['id'],
+                    user_id=user.id, ticket_id=ticket.id,
                     quantity=quantity, ticket_type=ticket_type,
                     price=price, qr_code=file_name,
                     currency='GHS', payment_status='COMPLETED',
@@ -494,33 +505,17 @@ async def create_bulk_order(event_id):
                 password = generate_token()
                 data = {
                     'phone': phone, 'name': name,
-                    'event_coordinates': event.coordinates if event else 'www.app.chaleapp.org',
                     'event_name': event.name,
-                    'start_date': util.format_date_time(event.start_date, event.start_time) if event else None,
-                    'end_date': util.format_date_time(event.end_date, event.end_time) if event else None,
-                    'password': password, 'ticket_id': ticket['id'],
-                    'ticket_type': ticket_type,
+                    'password': password, 'ticket_id': ticket.id,
+                    'ticket_type': ticket.title,
                     'file_name': file_name,
                     'assigned_table': assigned_table
                 }
 
-                code_data.append(data)
-
-                cache_result = cache.hset(key=file_name, data=data)
-                if not cache_result:
-                    abort(500, 'Error writing to Redis')
+                cache.hset(file_name, data)
 
                 success_count += 1
                 mail_code_url = f'{os.getenv("SERVER_ADDRESS")}qr_code/{file_name}'
-                body = render_template(
-                    "ticket_email_template.html",
-                    event_name=event.name,
-                    password=password,
-                    mail_code_url=mail_code_url,
-                    user_name=name.split(" ")[0]
-                )
-                send_email(subject=f"You Dey Inside! {event.name} is Waiting for You 🎉", recipients=[email],
-                           body=body, html_body=body)
 
             except Exception as e:
                 logger.error(f"Failed to process row {row}: {e}")
