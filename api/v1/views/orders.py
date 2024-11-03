@@ -436,7 +436,7 @@ def get_event_orders(event_id):
 
 
 @app_views.route('/bulk-orders/<event_id>', methods=['POST'], strict_slashes=False)
-def create_bulk_order(event_id):
+async def create_bulk_order(event_id):
     """
     Create bulk orders
     """
@@ -472,10 +472,10 @@ def create_bulk_order(event_id):
                 if not user:
                     user = User(id=phone, phone=phone, password=phone, country_id=1,
                                 name=name, email=email if email else str(phone))
-                    user.save()
-                    users.append(user)
+                    # user.save()
+                    users.append(user.to_dict())
                 else:
-                    user = User(**user[0], password="")
+                    user = User(**user[0], password=str(phone))
 
                 ticket = Ticket.dynamic_query({'title': ticket_type, "event_id": event_id})[0]
                 file_name = f'qrcode_{phone}-{datetime.now().timestamp()}'
@@ -487,8 +487,8 @@ def create_bulk_order(event_id):
                     currency='GHS', payment_status='COMPLETED',
                     reference=f'REF{generate_token()}'
                 )
-                order.save()
-                # orders.append(order)
+                # order.save()
+                orders.append(order.to_dict())
 
                 
 
@@ -501,7 +501,8 @@ def create_bulk_order(event_id):
                     'end_date': util.format_date_time(event.end_date, event.end_time) if event else None,
                     'password': password, 'ticket_id': ticket['id'],
                     'ticket_type': ticket_type,
-                    'file_name': file_name
+                    'file_name': file_name,
+                    'assigned_table': assigned_table
                 }
 
                 code_data.append(data)
@@ -529,13 +530,15 @@ def create_bulk_order(event_id):
                     'error': str(e)
                 })
 
-        # try:
-        #     # print(users)
-        #     # User.bulk_insert(users)
-        #     # Order.bulk_insert(orders)
-        # except Exception as e:
-        #     logger.error(f"Bulk insert error: {e}")
-        #     abort(500, description="Bulk insert error occurred, transaction rolled back.")
+                print(success_count)
+
+        try:
+            # print(users)
+            User.bulk_insert(users)
+            Order.bulk_insert(orders)
+        except Exception as e:
+            logger.error(f"Bulk insert error: {e}")
+            abort(500, description="Bulk insert error occurred, transaction rolled back.")
 
         return jsonify({
             'success': True,

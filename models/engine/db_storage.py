@@ -43,7 +43,7 @@ class DBStorage:
         """
         Initializes the DBStorage class and sets up the database engine.
         """
-        self.__engine = create_engine(DB_URL, echo=False, pool_pre_ping=True)
+        self.__engine = create_engine(DB_URL, echo=False, pool_pre_ping=True, pool_recycle=True)
         self.__session = None
         self.reload()
 
