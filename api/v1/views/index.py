@@ -208,7 +208,7 @@ async def get_pdf_code(filename):
         abort(500, description=f"An error occurred while generating the receipt: {str(e)}")
 
 
-@app_views.route('/generate_qr_codes_pdf/', methods=['POST'])
+@app_views.route('/bulk-qrcodes', methods=['POST'], strict_slashes=False)
 async def get_bulk_code():
     """
     Retrieve and serve a QR code receipt PDF asynchronously.
